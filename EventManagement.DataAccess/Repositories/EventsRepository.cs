@@ -66,7 +66,8 @@ namespace EventManagement.DataAccess.Repositories
                     .SetProperty(e => e.EndDate, e => endDate)
                     .SetProperty(e => e.Location, e => location)
                     .SetProperty(e => e.OrganizerId, e => organizerId)
-                    .SetProperty(e => e.IsActive, e => isActive));
+                    .SetProperty(e => e.IsActive, e => isActive)
+                    .SetProperty(e => e.UpdatedAt, e => DateTime.UtcNow));
 
             return eventId;
         }

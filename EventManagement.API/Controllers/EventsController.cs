@@ -20,7 +20,7 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<List<EventsResponse>>> GetEvents()
         {
             var events = await _eventsService.GetAllEvents();
-            var response = events.Select(x => new EventsResponse(x.Id, x.Title, x.Description, x.StartDate, x.EndDate, x.Location, x.OrganizerId, x.IsActive));
+            var response = events.Select(x => new EventsResponse(x.Id, x.Title, x.Description, x.StartDate, x.EndDate, x.Location, x.OrganizerId, x.IsActive, x.CreatedAt, x.UpdatedAt));
             return Ok(response);
         }
 

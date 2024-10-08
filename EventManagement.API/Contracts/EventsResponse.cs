@@ -8,5 +8,7 @@
         DateTime endDate, 
         string location, 
         Guid organizerId,
-        bool isActive);
+        bool isActive,
+        DateTime createdAt,
+        DateTime updatedAt);
 }
