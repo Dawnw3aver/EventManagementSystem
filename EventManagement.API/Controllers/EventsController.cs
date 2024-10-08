@@ -1,6 +1,7 @@
 ﻿using EventManagement.API.Contracts;
 using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventManagement.API.Controllers
@@ -16,6 +17,7 @@ namespace EventManagement.API.Controllers
             _eventsService = eventsService;
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<List<EventsResponse>>> GetEvents()
         {
