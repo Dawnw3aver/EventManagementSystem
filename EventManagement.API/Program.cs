@@ -3,8 +3,6 @@ using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
 using EventManagement.DataAccess;
 using EventManagement.DataAccess.Repositories;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
