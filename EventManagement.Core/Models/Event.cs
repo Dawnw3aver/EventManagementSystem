@@ -107,7 +107,7 @@ namespace EventManagement.Core.Models
 
         public List<Guid> RegisteredParticipantIds { get; } = [];
 
-        public DateTime CreatedAt { get; } = DateTime.Now.ToUniversalTime();
+        public DateTime CreatedAt { get; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; }
 

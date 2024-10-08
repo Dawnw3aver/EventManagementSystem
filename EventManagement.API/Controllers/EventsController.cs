@@ -36,8 +36,8 @@ namespace EventManagement.API.Controllers
                 request.location,
                 request.organizerId,
                 new List<Guid>(),
-                DateTime.Now.ToUniversalTime(),
-                DateTime.Now.ToUniversalTime(),
+                DateTime.UtcNow,
+                DateTime.UtcNow,
                 request.isActive);
 
             if (!string.IsNullOrEmpty(error))
