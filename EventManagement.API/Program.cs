@@ -4,6 +4,7 @@ using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
 using EventManagement.DataAccess;
 using EventManagement.DataAccess.Repositories;
+using EventManagement.Application.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
 
 builder.Services.AddIdentityCore<User>()
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<EventManagementDbContext>()
     .AddApiEndpoints();
 
@@ -35,6 +37,12 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    await StartupHelper.InitializeRoles(services);
 }
 
 app.UseHttpsRedirection();

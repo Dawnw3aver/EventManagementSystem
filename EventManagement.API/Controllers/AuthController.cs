@@ -19,13 +19,14 @@ using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using EventManagement.Application.Helpers;
 
 namespace EventManagement.API.Controllers;
 
 /// <summary>
 /// Provides extension methods for <see cref="IEndpointRouteBuilder"/> to add identity endpoints.
 /// </summary>
-public static class MapApi
+public static class AuthController
 {
     // Validate the email address using DataAnnotations like the UserValidator does when RequireUniqueEmail = true.
     private static readonly EmailAddressAttribute _emailAddressAttribute = new();
@@ -46,7 +47,7 @@ public static class MapApi
 
         var timeProvider = endpoints.ServiceProvider.GetRequiredService<TimeProvider>();
         var bearerTokenOptions = endpoints.ServiceProvider.GetRequiredService<IOptionsMonitor<BearerTokenOptions>>();
-        var emailSender = endpoints.ServiceProvider.GetRequiredService<IEmailSender<TUser>>();
+        var emailSender = new EmailSender<TUser>();
         var linkGenerator = endpoints.ServiceProvider.GetRequiredService<LinkGenerator>();
 
         // We'll figure out a unique endpoint name based on the final route pattern during endpoint generation.
@@ -56,8 +57,7 @@ public static class MapApi
 
         // NOTE: We cannot inject UserManager<TUser> directly because the TUser generic parameter is currently unsupported by RDG.
         // https://github.com/dotnet/aspnetcore/issues/47338
-        routeGroup.MapPost("/register", async Task<Results<Ok, ValidationProblem>>
-            ([FromBody] CustomRegisterRequest registration, HttpContext context, [FromServices] IServiceProvider sp) =>
+        routeGroup.MapPost("/register", async Task<Results<Ok, ValidationProblem>> ([FromBody] CustomRegisterRequest registration, HttpContext context, [FromServices] IServiceProvider sp) =>
         {
             var userManager = sp.GetRequiredService<UserManager<TUser>>();
 
@@ -97,8 +97,7 @@ public static class MapApi
             return TypedResults.Ok();
         });
 
-        routeGroup.MapPost("/login", async Task<Results<Ok<AccessTokenResponse>, EmptyHttpResult, ProblemHttpResult>>
-            ([FromBody] LoginRequest login, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies, [FromServices] IServiceProvider sp) =>
+        routeGroup.MapPost("/login", async Task<Results<Ok<AccessTokenResponse>, EmptyHttpResult, ProblemHttpResult>> ([FromBody] LoginRequest login, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies, [FromServices] IServiceProvider sp) =>
         {
             var signInManager = sp.GetRequiredService<SignInManager<TUser>>();
 
@@ -129,8 +128,7 @@ public static class MapApi
             return TypedResults.Empty;
         });
 
-        routeGroup.MapPost("/refresh", async Task<Results<Ok<AccessTokenResponse>, UnauthorizedHttpResult, SignInHttpResult, ChallengeHttpResult>>
-            ([FromBody] RefreshRequest refreshRequest, [FromServices] IServiceProvider sp) =>
+        routeGroup.MapPost("/refresh", async Task<Results<Ok<AccessTokenResponse>, UnauthorizedHttpResult, SignInHttpResult, ChallengeHttpResult>> ([FromBody] RefreshRequest refreshRequest, [FromServices] IServiceProvider sp) =>
         {
             var signInManager = sp.GetRequiredService<SignInManager<TUser>>();
             var refreshTokenProtector = bearerTokenOptions.Get(IdentityConstants.BearerScheme).RefreshTokenProtector;
@@ -149,8 +147,7 @@ public static class MapApi
             return TypedResults.SignIn(newPrincipal, authenticationScheme: IdentityConstants.BearerScheme);
         });
 
-        routeGroup.MapGet("/confirmEmail", async Task<Results<ContentHttpResult, UnauthorizedHttpResult>>
-            ([FromQuery] string userId, [FromQuery] string code, [FromQuery] string? changedEmail, [FromServices] IServiceProvider sp) =>
+        routeGroup.MapGet("/confirmEmail", async Task<Results<ContentHttpResult, UnauthorizedHttpResult>> ([FromQuery] string userId, [FromQuery] string code, [FromQuery] string? changedEmail, [FromServices] IServiceProvider sp) =>
         {
             var userManager = sp.GetRequiredService<UserManager<TUser>>();
             if (await userManager.FindByIdAsync(userId) is not { } user)
@@ -200,8 +197,7 @@ public static class MapApi
             endpointBuilder.Metadata.Add(new EndpointNameMetadata(confirmEmailEndpointName));
         });
 
-        routeGroup.MapPost("/resendConfirmationEmail", async Task<Ok>
-            ([FromBody] ResendConfirmationEmailRequest resendRequest, HttpContext context, [FromServices] IServiceProvider sp) =>
+        routeGroup.MapPost("/resendConfirmationEmail", async Task<Ok> ([FromBody] ResendConfirmationEmailRequest resendRequest, HttpContext context, [FromServices] IServiceProvider sp) =>
         {
             var userManager = sp.GetRequiredService<UserManager<TUser>>();
             if (await userManager.FindByEmailAsync(resendRequest.Email) is not { } user)
@@ -213,8 +209,7 @@ public static class MapApi
             return TypedResults.Ok();
         });
 
-        routeGroup.MapPost("/forgotPassword", async Task<Results<Ok, ValidationProblem>>
-            ([FromBody] ForgotPasswordRequest resetRequest, [FromServices] IServiceProvider sp) =>
+        routeGroup.MapPost("/forgotPassword", async Task<Results<Ok, ValidationProblem>> ([FromBody] ForgotPasswordRequest resetRequest, [FromServices] IServiceProvider sp) =>
         {
             var userManager = sp.GetRequiredService<UserManager<TUser>>();
             var user = await userManager.FindByEmailAsync(resetRequest.Email);
@@ -232,8 +227,7 @@ public static class MapApi
             return TypedResults.Ok();
         });
 
-        routeGroup.MapPost("/resetPassword", async Task<Results<Ok, ValidationProblem>>
-            ([FromBody] ResetPasswordRequest resetRequest, [FromServices] IServiceProvider sp) =>
+        routeGroup.MapPost("/resetPassword", async Task<Results<Ok, ValidationProblem>> ([FromBody] ResetPasswordRequest resetRequest, [FromServices] IServiceProvider sp) =>
         {
             var userManager = sp.GetRequiredService<UserManager<TUser>>();
 
@@ -267,8 +261,7 @@ public static class MapApi
 
         var accountGroup = routeGroup.MapGroup("/manage").RequireAuthorization();
 
-        accountGroup.MapPost("/2fa", async Task<Results<Ok<TwoFactorResponse>, ValidationProblem, NotFound>>
-            (ClaimsPrincipal claimsPrincipal, [FromBody] TwoFactorRequest tfaRequest, [FromServices] IServiceProvider sp) =>
+        accountGroup.MapPost("/2fa", async Task<Results<Ok<TwoFactorResponse>, ValidationProblem, NotFound>> (ClaimsPrincipal claimsPrincipal, [FromBody] TwoFactorRequest tfaRequest, [FromServices] IServiceProvider sp) =>
         {
             var signInManager = sp.GetRequiredService<SignInManager<TUser>>();
             var userManager = signInManager.UserManager;
