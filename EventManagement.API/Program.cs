@@ -1,3 +1,4 @@
+using EventManagement.API.Controllers;
 using EventManagement.Application.Services;
 using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
@@ -43,6 +44,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapIdentityApi<User>();
+app.MapCustomIdentityApi<User>();
 
 app.Run();
