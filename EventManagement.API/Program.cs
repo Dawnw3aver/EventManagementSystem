@@ -28,6 +28,17 @@ builder.Services.AddDbContext<EventManagementDbContext>(
         options.UseNpgsql(builder.Configuration.GetConnectionString(nameof(EventManagementDbContext)));
     });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin", builder =>
+    {
+        builder.WithOrigins("http://localhost:3000")
+               .AllowAnyHeader()
+               .AllowAnyMethod()
+               .AllowCredentials();
+    });
+});
+
 builder.Services.AddScoped<IEventsService, EventsService>();
 builder.Services.AddScoped<IEventsRepository, EventsRepository>();
 
@@ -44,6 +55,8 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     await StartupHelper.InitializeRoles(services);
 }
+
+app.UseCors("AllowSpecificOrigin");
 
 app.UseHttpsRedirection();
 

@@ -35,6 +35,16 @@ a {
   text-decoration: none;
 }
 
+.ant-carousel .slick-slide {
+  padding: 0; /* Убираем паддинги для слайдов */
+}
+
+.site-layout-content {
+  max-width: 100%; /* Гарантируем, что контент не будет шире */
+  overflow: hidden; /* Убираем лишние пробелы */
+}
+
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
