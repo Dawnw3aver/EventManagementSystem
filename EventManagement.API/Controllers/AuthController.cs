@@ -53,7 +53,7 @@ public static class AuthController
         // We'll figure out a unique endpoint name based on the final route pattern during endpoint generation.
         string? confirmEmailEndpointName = null;
 
-        var routeGroup = endpoints.MapGroup("/api/v1");
+        var routeGroup = endpoints.MapGroup("api/v1");
 
         // NOTE: We cannot inject UserManager<TUser> directly because the TUser generic parameter is currently unsupported by RDG.
         // https://github.com/dotnet/aspnetcore/issues/47338

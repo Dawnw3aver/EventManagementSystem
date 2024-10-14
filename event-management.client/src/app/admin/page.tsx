@@ -34,12 +34,12 @@ const EventsPage: React.FC = () => {
         setIsModalVisible(true);
     };
 
-    const handleDelete = async (eventId: number) => {
+    const handleDelete = async (eventId: string) => {
         const confirmDelete = window.confirm('Вы уверены, что хотите удалить это событие?');
         if (confirmDelete) {
             try {
-                await axios.delete(`https://localhost:7285/api/v1/events/${eventId}`, { withCredentials: true });
-                setEvents(events.filter(event => event.id !== eventId));
+                await axios.delete(`https://localhost:7285/api/v1/events/${eventId}`);
+                setEvents(events.filter(event => event.id !== eventId)); // Убираем удаленное событие из списка
                 console.log('Событие удалено');
             } catch (error) {
                 console.error('Ошибка при удалении события:', error);
@@ -52,7 +52,7 @@ const EventsPage: React.FC = () => {
             if (currentEvent) {
                 // Изменение события
                 await axios.put(`https://localhost:7285/api/v1/events/${currentEvent.id}`, values, { withCredentials: true });
-                setEvents(events.map(event => (event.id === currentEvent.id ? { ...event, ...values } : event)));
+                setEvents(events.map(event => (event.id === currentEvent.id ? { ...event, ...values } : event))); // Обновляем измененное событие
                 console.log('Событие обновлено');
             }
         } catch (error) {
@@ -88,7 +88,7 @@ const EventsPage: React.FC = () => {
                                 />
                                 <div>
                                     <Button type="primary" onClick={() => handleEdit(event)} style={{ marginRight: '10px' }}>Изменить</Button>
-                                    <Button type="danger" onClick={() => handleDelete(event.id)}>Удалить</Button>
+                                    <Button type="primary" onClick={() => handleDelete(event.id)}>Удалить</Button>
                                 </div>
                             </List.Item>
                         )}

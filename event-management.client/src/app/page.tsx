@@ -1,6 +1,6 @@
 "use client"; // Добавлено для использования хуков
 
-import { Button, Layout, Menu, Typography, Carousel, Modal, Form, Input } from 'antd';
+import { Button, Layout, Menu, Typography, Carousel, Modal, Form, Input, Spin } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import axios from 'axios';
@@ -12,6 +12,7 @@ const Home: React.FC = () => {
   const router = useRouter();
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const showLoginModal = () => {
     setIsLoginModalVisible(true);
@@ -53,13 +54,12 @@ const Home: React.FC = () => {
         <div className="logo" />
         <Menu theme="dark" mode="horizontal" defaultSelectedKeys={['1']} style={{ justifyContent: 'flex-end' }}>
           <Menu.Item key="1" onClick={() => router.push('/')}>Home</Menu.Item>
-          <Menu.Item key="2" onClick={() => router.push('/events')}>Events</Menu.Item>
-          <Menu.Item key="3" onClick={() => router.push('/users')}>Users</Menu.Item>
-          <Menu.Item key="4">
-            <Button type="link" onClick={showLoginModal} style={{ color: 'white' }}>Login</Button>
+          <Menu.Item key="2" onClick={() => router.push('/admin')}>Администрирование</Menu.Item>
+          <Menu.Item key="3">
+            <Button type="link" onClick={showLoginModal} style={{ color: 'white' }}>Вход</Button>
           </Menu.Item>
-          <Menu.Item key="5">
-            <Button type="link" onClick={showRegisterModal} style={{ color: 'white' }}>Register</Button>
+          <Menu.Item key="4">
+            <Button type="link" onClick={showRegisterModal} style={{ color: 'white' }}>Регистрация</Button>
           </Menu.Item>
         </Menu>
       </Header>

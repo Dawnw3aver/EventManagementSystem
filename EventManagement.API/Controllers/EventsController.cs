@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EventManagement.API.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/v1/[controller]")]
     public class EventsController : ControllerBase
     {
@@ -17,7 +18,6 @@ namespace EventManagement.API.Controllers
             _eventsService = eventsService;
         }
 
-        [Authorize]
         [HttpGet]
         public async Task<ActionResult<List<EventsResponse>>> GetEvents()
         {
