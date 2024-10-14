@@ -1,7 +1,7 @@
 ﻿namespace EventManagement.API.Contracts
 {
     public record EventsResponse
-        (Guid eventId, 
+        (Guid id, 
         string title, 
         string description, 
         DateTime startDate,

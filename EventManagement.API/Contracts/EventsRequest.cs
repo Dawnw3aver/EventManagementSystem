@@ -6,6 +6,5 @@
         DateTime startDate,
         DateTime endDate,
         string location,
-        Guid organizerId,
         bool isActive);
 }

@@ -3,6 +3,8 @@ using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
+using System.Security.Claims;
 
 namespace EventManagement.API.Controllers
 {
@@ -29,6 +31,8 @@ namespace EventManagement.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Guid>> CreateEvent([FromBody]EventsRequest request)
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
             var (@event, error) = Event.Create(
                 Guid.NewGuid(),
                 request.title,
@@ -36,7 +40,7 @@ namespace EventManagement.API.Controllers
                 request.startDate,
                 request.endDate,
                 request.location,
-                request.organizerId,
+                new Guid(userId),
                 new List<Guid>(),
                 DateTime.UtcNow,
                 DateTime.UtcNow,
@@ -55,7 +59,8 @@ namespace EventManagement.API.Controllers
         [HttpPut("{id:guid}")]
         public async Task<ActionResult<Guid>> UpdateEvent(Guid id, [FromBody] EventsRequest request)
         {
-            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, request.location, request.organizerId, request.isActive);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, request.location, new Guid(userId), request.isActive); //todo Guid.Empty потом заменить
             return Ok(eventId);
         }
 
