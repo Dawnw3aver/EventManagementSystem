@@ -76,7 +76,7 @@ namespace EventManagement.API.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<ActionResult<Guid>> UpdateUser(Guid id, [FromBody] UsersRequest request)
+        public async Task<ActionResult<Guid>> UpdateUser(Guid id, [FromBody] UserUpdateRequest request)
         {
             var user = await _userManager.FindByIdAsync(id.ToString());
             if (user == null)
@@ -84,13 +84,13 @@ namespace EventManagement.API.Controllers
                 return NotFound();
             }
 
-            user.Email = request.Email;
-            user.UserName = request.UserName;
-            user.PhoneNumber = request.PhoneNumber;
-            user.FirstName = request.FirstName;
-            user.MiddleName = request.MiddleName;
-            user.LastName = request.LastName;
-            user.BirthDate = request.BirthDate;
+            user.Email = request.Email ?? user.Email;
+            user.UserName = request.UserName ?? user.UserName;
+            user.PhoneNumber = request.PhoneNumber ?? user.PhoneNumber;
+            user.FirstName = request.FirstName ?? user.FirstName;
+            user.MiddleName = request.MiddleName ?? user.MiddleName;
+            user.LastName = request.LastName ?? user.LastName;
+            user.BirthDate = request.BirthDate ?? user.BirthDate;
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
