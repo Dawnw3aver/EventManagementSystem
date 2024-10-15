@@ -31,7 +31,7 @@ namespace EventManagement.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Guid>> CreateEvent([FromBody]EventsRequest request)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var authorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             var (@event, error) = Event.Create(
                 Guid.NewGuid(),
@@ -40,7 +40,7 @@ namespace EventManagement.API.Controllers
                 request.startDate,
                 request.endDate,
                 request.location,
-                new Guid(userId),
+                new Guid(authorId),
                 new List<Guid>(),
                 DateTime.UtcNow,
                 DateTime.UtcNow,
@@ -59,8 +59,8 @@ namespace EventManagement.API.Controllers
         [HttpPut("{id:guid}")]
         public async Task<ActionResult<Guid>> UpdateEvent(Guid id, [FromBody] EventsRequest request)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, request.location, new Guid(userId), request.isActive); //todo Guid.Empty потом заменить
+            var authorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, request.location, new Guid(authorId), request.isActive); //todo Guid.Empty потом заменить
             return Ok(eventId);
         }
 
