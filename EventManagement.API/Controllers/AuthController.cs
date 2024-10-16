@@ -50,7 +50,6 @@ public static class AuthController
         var bearerTokenOptions = endpoints.ServiceProvider.GetRequiredService<IOptionsMonitor<BearerTokenOptions>>();
         var emailSender = new EmailSender<TUser>();
         var linkGenerator = endpoints.ServiceProvider.GetRequiredService<LinkGenerator>();
-        //var logService = endpoints.ServiceProvider.GetRequiredService<ILoggingService>();
 
         // We'll figure out a unique endpoint name based on the final route pattern during endpoint generation.
         string? confirmEmailEndpointName = null;
@@ -62,6 +61,7 @@ public static class AuthController
         routeGroup.MapPost("/register", async Task<Results<Ok, ValidationProblem>> ([FromBody] CustomRegisterRequest registration, HttpContext context, [FromServices] IServiceProvider sp) =>
         {
             var userManager = sp.GetRequiredService<UserManager<TUser>>();
+            var loggingService = sp.GetRequiredService<ILoggingService>();
 
             if (!userManager.SupportsUserEmail)
             {
@@ -77,12 +77,16 @@ public static class AuthController
                 return CreateValidationProblem(IdentityResult.Failed(userManager.ErrorDescriber.InvalidEmail(email)));
             }
             var user = new TUser();
+            string userId = string.Empty;
+            string userName = string.Empty;
             if (user is User myUser)
             {
                 myUser.FirstName = registration.FirstName;
                 myUser.MiddleName = registration.MiddleName;
                 myUser.LastName = registration.LastName;
                 myUser.BirthDate = registration.BirthDate;
+                userId = myUser.Id;
+                userName = myUser.UserName;
             }
 
             await userStore.SetUserNameAsync(user, email, CancellationToken.None);
@@ -96,12 +100,15 @@ public static class AuthController
             }
 
             await SendConfirmationEmailAsync(user, userManager, context, email);
+            await loggingService.LogActionAsync(userId, "register", $"Зарегистрирован новый пользователь {userName}");
             return TypedResults.Ok();
         });
 
         routeGroup.MapPost("/login", async Task<Results<Ok<AccessTokenResponse>, EmptyHttpResult, ProblemHttpResult>> ([FromBody] LoginRequest login, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies, [FromServices] IServiceProvider sp) =>
         {
             var signInManager = sp.GetRequiredService<SignInManager<TUser>>();
+            var loggingService = sp.GetRequiredService<ILoggingService>();
+            var userManager = sp.GetRequiredService<UserManager<TUser>>();
 
             var useCookieScheme = useCookies == true || useSessionCookies == true;
             var isPersistent = useCookies == true && useSessionCookies != true;
@@ -120,12 +127,13 @@ public static class AuthController
                     result = await signInManager.TwoFactorRecoveryCodeSignInAsync(login.TwoFactorRecoveryCode);
                 }
             }
-
             if (!result.Succeeded)
             {
                 return TypedResults.Problem(result.ToString(), statusCode: StatusCodes.Status401Unauthorized);
             }
 
+            var user = await userManager.FindByEmailAsync(login.Email) as User;
+            await loggingService.LogActionAsync(user.Id, "login", $"Пользователь {user.UserName} выполнил вход в систему");
             // The signInManager already produced the needed response in the form of a cookie or bearer token.
             return TypedResults.Empty;
         });
@@ -152,6 +160,7 @@ public static class AuthController
         routeGroup.MapGet("/confirmEmail", async Task<Results<ContentHttpResult, UnauthorizedHttpResult>> ([FromQuery] string userId, [FromQuery] string code, [FromQuery] string? changedEmail, [FromServices] IServiceProvider sp) =>
         {
             var userManager = sp.GetRequiredService<UserManager<TUser>>();
+            var loggingService = sp.GetRequiredService<ILoggingService>();
             if (await userManager.FindByIdAsync(userId) is not { } user)
             {
                 // We could respond with a 404 instead of a 401 like Identity UI, but that feels like unnecessary information.
@@ -190,6 +199,8 @@ public static class AuthController
                 return TypedResults.Unauthorized();
             }
 
+            var User = user as User;
+            await loggingService.LogActionAsync(User.Id, "confirmEmail", $"Пользователь {User.UserName} подтвердил почту {User.Email}");
             return TypedResults.Text("Thank you for confirming your email.");
         })
         .Add(endpointBuilder =>

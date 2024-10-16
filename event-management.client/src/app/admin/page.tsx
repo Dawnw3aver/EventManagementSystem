@@ -198,7 +198,7 @@ const UsersAndEventsPage: React.FC = () => {
             title: 'Дата и время',
             dataIndex: 'timestamp',
             key: 'timestamp',
-            render: (timestamp: string) => moment(timestamp).format('YYYY-MM-DD HH:mm:ss'),
+            render: (timestamp: string) => moment(timestamp).format('DD.MM.YYYY HH:mm:ss'),
         },
         {
             title: 'Действие',
@@ -209,6 +209,11 @@ const UsersAndEventsPage: React.FC = () => {
             title: 'Детали',
             dataIndex: 'details',
             key: 'details',
+        },
+        {
+            title: 'Объект',
+            dataIndex: 'objectId',
+            key: 'objectId',
         },
     ];
 
