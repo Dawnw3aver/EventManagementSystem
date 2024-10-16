@@ -2,7 +2,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using EventManagement.API.Contracts;  // Путь к контрактам
-using EventManagement.Core.Models;   // Путь к модели пользователя
+using EventManagement.Core.Models;
+using EventManagement.Core.Abstractions;   // Путь к модели пользователя
 
 namespace EventManagement.API.Controllers
 {
@@ -13,11 +14,13 @@ namespace EventManagement.API.Controllers
     {
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ILoggingService _loggingService;
 
-        public UsersController(UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
+        public UsersController(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, ILoggingService loggingService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _loggingService = loggingService;
         }
 
         [HttpGet]
@@ -72,6 +75,7 @@ namespace EventManagement.API.Controllers
                 }
             }
 
+            await _loggingService.LogActionAsync(user.Id, "CreateUser", $"Создан пользователь \"{user.UserName}\"");
             return Ok(Guid.Parse(user.Id));
         }
 
@@ -108,6 +112,7 @@ namespace EventManagement.API.Controllers
                 }
             }
 
+            await _loggingService.LogActionAsync(user.Id, "UpdateUser", $"Обновлен пользователь \"{user.UserName}\"");
             return Ok(Guid.Parse(user.Id));
         }
 
@@ -126,6 +131,7 @@ namespace EventManagement.API.Controllers
                 return BadRequest(result.Errors);
             }
 
+            await _loggingService.LogActionAsync(user.Id, "UpdateUser", $"Удален пользователь \"{user.UserName}\"");
             return Ok(id);
         }
     }

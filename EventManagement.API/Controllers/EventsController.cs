@@ -14,10 +14,12 @@ namespace EventManagement.API.Controllers
     public class EventsController : ControllerBase
     {
         private readonly IEventsService _eventsService;
+        private readonly ILoggingService _loggingService;
         
-        public EventsController(IEventsService eventsService)
+        public EventsController(IEventsService eventsService, ILoggingService loggingService)
         {
             _eventsService = eventsService;
+            _loggingService = loggingService;
         }
 
         [HttpGet]
@@ -51,7 +53,8 @@ namespace EventManagement.API.Controllers
                 return BadRequest(error);
             }
 
-            await _eventsService.CreateEvent(@event);
+            var id = await _eventsService.CreateEvent(@event);
+            await _loggingService.LogActionAsync(id.ToString(), "CreateEvent", $"Создано событие {request.title}");
 
             return Ok(@event.Id);
         }
@@ -60,7 +63,8 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<Guid>> UpdateEvent(Guid id, [FromBody] EventsRequest request)
         {
             var authorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, request.location, new Guid(authorId), request.isActive); //todo Guid.Empty потом заменить
+            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, request.location, new Guid(authorId), request.isActive);
+            await _loggingService.LogActionAsync(id.ToString(), "UpdateEvent", $"Обновлено событие {request.title}");
             return Ok(eventId);
         }
 
@@ -68,6 +72,7 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<Guid>> DeleteEvent(Guid id)
         {
             var eventId = await _eventsService.DeleteEvent(id);
+            await _loggingService.LogActionAsync(id.ToString(), "DeleteEvent", $"Событие удалено");
             return Ok(eventId);
         }
     }

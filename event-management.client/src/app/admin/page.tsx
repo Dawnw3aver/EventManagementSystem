@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { List, Spin, Typography, Layout, Modal, Button, Form, Input, DatePicker, Checkbox, Tabs } from 'antd';
+import { List, Spin, Typography, Layout, Modal, Button, Form, Input, DatePicker, Checkbox, Tabs, Table, Pagination } from 'antd';
 import axios from 'axios';
 import moment from 'moment'; // Для работы с датами
 
@@ -14,14 +14,19 @@ const availableRoles = ['Admin', 'User', 'Manager']; // Список ролей 
 const UsersAndEventsPage: React.FC = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [events, setEvents] = useState<any[]>([]);
+    const [logs, setLogs] = useState<any[]>([]);
     const [loadingUsers, setLoadingUsers] = useState<boolean>(true);
     const [loadingEvents, setLoadingEvents] = useState<boolean>(true);
+    const [loadingLogs, setLoadingLogs] = useState<boolean>(true);
     const [isAddUserModalVisible, setIsAddUserModalVisible] = useState<boolean>(false);
     const [isEditUserModalVisible, setIsEditUserModalVisible] = useState<boolean>(false);
     const [isAddEventModalVisible, setIsAddEventModalVisible] = useState<boolean>(false);
     const [isEditEventModalVisible, setIsEditEventModalVisible] = useState<boolean>(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentEvent, setCurrentEvent] = useState<any>(null);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [totalLogs, setTotalLogs] = useState<number>(0);
+    const pageSize = 10; // Количество логов на страницу
 
     // Загрузка пользователей с сервера
     const fetchUsers = async () => {
@@ -49,10 +54,25 @@ const UsersAndEventsPage: React.FC = () => {
         }
     };
 
+    // Загрузка логов с сервера
+    const fetchLogs = async (page: number) => {
+        setLoadingLogs(true);
+        try {
+            const response = await axios.get(`https://localhost:7285/api/v1/logs?page=${page}&pageSize=${pageSize}`, { withCredentials: true });
+            setLogs(response.data);
+            setTotalLogs(parseInt(response.headers['x-total-count'], 10) || 0);
+        } catch (error) {
+            console.error('Ошибка при загрузке логов:', error);
+        } finally {
+            setLoadingLogs(false);
+        }
+    };
+
     useEffect(() => {
         fetchUsers();
         fetchEvents();
-    }, []);
+        fetchLogs(currentPage);
+    }, [currentPage]);
 
     // === Обработчики для событий ===
     const handleEditEvent = (event: any) => {
@@ -116,7 +136,6 @@ const UsersAndEventsPage: React.FC = () => {
         setCurrentUser({
             ...user,
             birthDate: moment(user.birthDate),
-            password: "null"
         });
         setIsEditUserModalVisible(true);
     };
@@ -166,13 +185,32 @@ const UsersAndEventsPage: React.FC = () => {
         }
     };
 
-    if (loadingUsers || loadingEvents) {
+    if (loadingUsers || loadingEvents || loadingLogs) {
         return (
             <div style={{ textAlign: 'center', marginTop: '50px' }}>
                 <Spin size="large" />
             </div>
         );
     }
+
+    const columns = [
+        {
+            title: 'Дата и время',
+            dataIndex: 'timestamp',
+            key: 'timestamp',
+            render: (timestamp: string) => moment(timestamp).format('YYYY-MM-DD HH:mm:ss'),
+        },
+        {
+            title: 'Действие',
+            dataIndex: 'action',
+            key: 'action',
+        },
+        {
+            title: 'Детали',
+            dataIndex: 'details',
+            key: 'details',
+        },
+    ];
 
     return (
         <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
@@ -226,6 +264,24 @@ const UsersAndEventsPage: React.FC = () => {
                                         </div>
                                     </List.Item>
                                 )}
+                            />
+                        </TabPane>
+
+                        {/* Вкладка для логов */}
+                        <TabPane tab="Логи" key="3">
+                            <Title level={2} style={{ textAlign: 'center' }}>Логи системы</Title>
+                            <Table
+                                dataSource={logs}
+                                columns={columns}
+                                pagination={false}
+                                rowKey="id"
+                            />
+                            <Pagination
+                                current={currentPage}
+                                total={totalLogs}
+                                pageSize={pageSize}
+                                onChange={(page) => setCurrentPage(page)}
+                                style={{ marginTop: '20px', textAlign: 'right' }}
                             />
                         </TabPane>
                     </Tabs>

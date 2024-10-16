@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using EventManagement.Application.Helpers;
+using EventManagement.Core.Abstractions;
 
 namespace EventManagement.API.Controllers;
 
@@ -49,6 +50,7 @@ public static class AuthController
         var bearerTokenOptions = endpoints.ServiceProvider.GetRequiredService<IOptionsMonitor<BearerTokenOptions>>();
         var emailSender = new EmailSender<TUser>();
         var linkGenerator = endpoints.ServiceProvider.GetRequiredService<LinkGenerator>();
+        //var logService = endpoints.ServiceProvider.GetRequiredService<ILoggingService>();
 
         // We'll figure out a unique endpoint name based on the final route pattern during endpoint generation.
         string? confirmEmailEndpointName = null;
