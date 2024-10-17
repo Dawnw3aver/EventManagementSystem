@@ -1,12 +1,15 @@
 ﻿namespace EventManagement.API.Contracts
 {
     public record EventsResponse
-        (Guid eventId, 
+        (Guid id, 
         string title, 
         string description, 
         DateTime startDate,
         DateTime endDate, 
         string location, 
         Guid organizerId,
-        bool isActive);
+        bool isActive,
+        DateTime createdAt,
+        DateTime updatedAt,
+        List<string> imageUrls);
 }

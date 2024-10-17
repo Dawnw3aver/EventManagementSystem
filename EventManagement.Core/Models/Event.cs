@@ -19,6 +19,7 @@ namespace EventManagement.Core.Models
             string location, 
             Guid organizerId, 
             List<Guid> registeredParticipantIds,
+            List<string> imageUrls,
             DateTime createdAt,
             DateTime updatedAt,
             bool isActive)
@@ -31,6 +32,7 @@ namespace EventManagement.Core.Models
             Location = location;
             OrganizerId = organizerId;
             RegisteredParticipantIds = registeredParticipantIds;
+            ImageUrls = imageUrls;
             CreatedAt = createdAt;
             UpdatedAt = updatedAt;
             IsActive = isActive;
@@ -44,6 +46,7 @@ namespace EventManagement.Core.Models
           string location,
           Guid organizerId,
           List<Guid> registeredParticipantIds,
+          List<string> imageUrls,
           DateTime createdAt,
           DateTime updatedAt,
           bool isActive)
@@ -87,7 +90,7 @@ namespace EventManagement.Core.Models
                 error.AppendLine("Registered participants list cannot be null.");
             }
 
-            Event newEvent = new(id, title, description, startDate, endDate, location, organizerId, registeredParticipantIds, createdAt, updatedAt, isActive);
+            Event newEvent = new(id, title, description, startDate, endDate, location, organizerId, registeredParticipantIds, imageUrls, createdAt, updatedAt, isActive);
             return (newEvent, error.ToString());
         }
 
@@ -107,7 +110,9 @@ namespace EventManagement.Core.Models
 
         public List<Guid> RegisteredParticipantIds { get; } = [];
 
-        public DateTime CreatedAt { get; } = DateTime.Now.ToUniversalTime();
+        public List<string> ImageUrls { get; } = [];
+
+        public DateTime CreatedAt { get; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; }
 

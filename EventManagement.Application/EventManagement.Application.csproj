@@ -7,7 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\EventManagement.Core\EventManagement.Core.csproj" />
+    <ProjectReference Include="..\EventManagement.DataAccess\EventManagement.DataAccess.csproj" />
   </ItemGroup>
 
 </Project>

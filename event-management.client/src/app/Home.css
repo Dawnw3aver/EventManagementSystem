@@ -1,0 +1,13 @@
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.layout {
+    background-color: #f0f2f5; /* Задаем основной цвет фона */
+}
+
+.description-container {
+    position: relative;
+    z-index: 1; /* Чтобы контейнер был поверх фона */
+}

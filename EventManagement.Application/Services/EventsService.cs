@@ -30,5 +30,10 @@ namespace EventManagement.Application.Services
         {
             return await _eventsRepository.Delete(eventId);
         }
+
+        public async Task<Guid> AddImages(Guid eventId, List<string> imageUrls)
+        {
+            return await _eventsRepository.AddImages(eventId, imageUrls);
+        }
     }
 }

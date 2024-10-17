@@ -18,7 +18,7 @@ namespace EventManagement.DataAccess.Repositories
             var eventEntities = await _context.Events.AsNoTracking().ToListAsync();
 
             var events = eventEntities
-                .Select(e => Event.Create(e.Id, e.Title, e.Description, e.StartDate, e.EndDate, e.Location, e.OrganizerId, e.RegisteredParticipantIds, e.CreatedAt, e.UpdatedAt, e.IsActive).Event)
+                .Select(e => Event.Create(e.Id, e.Title, e.Description, e.StartDate, e.EndDate, e.Location, e.OrganizerId, e.RegisteredParticipantIds, e.ImageUrls, e.CreatedAt, e.UpdatedAt, e.IsActive).Event)
                 .ToList();
 
             return events;
@@ -66,7 +66,8 @@ namespace EventManagement.DataAccess.Repositories
                     .SetProperty(e => e.EndDate, e => endDate)
                     .SetProperty(e => e.Location, e => location)
                     .SetProperty(e => e.OrganizerId, e => organizerId)
-                    .SetProperty(e => e.IsActive, e => isActive));
+                    .SetProperty(e => e.IsActive, e => isActive)
+                    .SetProperty(e => e.UpdatedAt, e => DateTime.UtcNow));
 
             return eventId;
         }
@@ -76,6 +77,19 @@ namespace EventManagement.DataAccess.Repositories
             await _context.Events
                 .Where(e => e.Id == eventId)
                 .ExecuteDeleteAsync();
+
+            return eventId;
+        }
+
+        public async Task<Guid> AddImages(Guid eventId, List<string> imageUrls)
+        {
+            // Найти событие по его Id
+            var eventEntity = await _context.Events.FindAsync(eventId) 
+                ?? throw new InvalidOperationException($"Event with ID {eventId} not found.");
+            eventEntity.ImageUrls.AddRange(imageUrls);
+
+            // Сохранить изменения в базе данных
+            await _context.SaveChangesAsync();
 
             return eventId;
         }
