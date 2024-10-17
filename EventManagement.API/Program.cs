@@ -58,6 +58,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors("AllowSpecificOrigin");
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 

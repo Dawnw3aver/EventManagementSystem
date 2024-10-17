@@ -18,6 +18,8 @@
 
         public List<Guid> RegisteredParticipantIds { get; set; } = [];
 
+        public List<string> ImageUrls { get; set; } = [];
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; }

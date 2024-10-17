@@ -10,5 +10,6 @@
         Guid organizerId,
         bool isActive,
         DateTime createdAt,
-        DateTime updatedAt);
+        DateTime updatedAt,
+        List<string> imageUrls);
 }

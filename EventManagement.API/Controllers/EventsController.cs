@@ -3,6 +3,7 @@ using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Security.Claims;
 
@@ -26,7 +27,7 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<List<EventsResponse>>> GetEvents()
         {
             var events = await _eventsService.GetAllEvents();
-            var response = events.Select(x => new EventsResponse(x.Id, x.Title, x.Description, x.StartDate, x.EndDate, x.Location, x.OrganizerId, x.IsActive, x.CreatedAt, x.UpdatedAt));
+            var response = events.Select(x => new EventsResponse(x.Id, x.Title, x.Description, x.StartDate, x.EndDate, x.Location, x.OrganizerId, x.IsActive, x.CreatedAt, x.UpdatedAt, x.ImageUrls));
             return Ok(response);
         }
 
@@ -44,6 +45,7 @@ namespace EventManagement.API.Controllers
                 request.location,
                 new Guid(authorId),
                 new List<Guid>(),
+                new List<string>(),
                 DateTime.UtcNow,
                 DateTime.UtcNow,
                 request.isActive);
@@ -73,7 +75,51 @@ namespace EventManagement.API.Controllers
         {
             var eventId = await _eventsService.DeleteEvent(id);
             await _loggingService.LogActionAsync(id.ToString(), "DeleteEvent", $"Событие удалено");
+
+            try
+            {
+                Directory.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", id.ToString()), true);
+            }
+            catch (DirectoryNotFoundException ex) { }
+
             return Ok(eventId);
+        }
+
+        [HttpPost("/upload-images")]
+        public async Task<IActionResult> UploadImages(Guid id, IFormFileCollection files) //todo проверить, что грузят именно изображения, ограничить количество
+        {
+            if (!files.Any())
+                return BadRequest();
+
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", id.ToString());
+
+            if (!Directory.Exists(uploadsPath))
+            {
+                Directory.CreateDirectory(uploadsPath);
+            }
+
+            var imageUrls = new List<string>();
+
+            foreach (var file in files)
+            {
+                if (file.Length > 0)
+                {
+                    var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+                    var filePath = Path.Combine(uploadsPath, fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+
+                    var imageUrl = $"/uploads/{id}/{fileName}";
+                    imageUrls.Add(imageUrl);
+                }
+            }
+
+            await _eventsService.AddImages(id, imageUrls);
+
+            return Ok(new { ImageUrls = imageUrls });
         }
     }
 }

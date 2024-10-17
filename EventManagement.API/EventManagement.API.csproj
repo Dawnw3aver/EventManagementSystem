@@ -23,4 +23,8 @@
     <ProjectReference Include="..\EventManagement.DataAccess\EventManagement.DataAccess.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\uploads\" />
+  </ItemGroup>
+
 </Project>
