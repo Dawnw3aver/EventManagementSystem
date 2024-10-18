@@ -216,30 +216,28 @@ const EventsPage: React.FC = () => {
 
                     <Row gutter={[16, 16]}>
                         {events.map(event => (
-                            <Col span={24} key={event.id}>
+                            <Col xs={24} sm={12} md={8} lg={6} key={event.id}>
                                 <Card
                                     hoverable
                                     cover={
                                         <img
                                             alt="event"
-                                            src={'https://localhost:7285' + event.imageUrls[0]} // Используем первое изображение из массива imageUrls или плейсхолдер
+                                            src={'https://localhost:7285' + event.imageUrls[0]} // Изображение события
                                             style={{ height: '200px', objectFit: 'cover' }}
                                         />
                                     }
                                 >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <div>
-                                            <Card.Meta
-                                                title={<span style={{ fontWeight: 'bold' }}>{event.title}</span>}
-                                                description={
-                                                    <>
-                                                        <p><CalendarOutlined /> {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}</p>
-                                                        <p><EnvironmentOutlined /> {event.location}</p>
-                                                    </>
-                                                }
-                                            />
-                                        </div>
-                                        <Button type="primary" style={{ marginTop: '15px', whiteSpace: 'nowrap' }}>
+                                    <Card.Meta
+                                        title={<span style={{ fontWeight: 'bold' }}>{event.title}</span>}
+                                        description={
+                                            <>
+                                                <p><CalendarOutlined /> {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}</p>
+                                                <p><EnvironmentOutlined /> {event.location}</p>
+                                            </>
+                                        }
+                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '15px' }}>
+                                        <Button type="primary" style={{ width: '100%' }}>
                                             Подробнее
                                         </Button>
                                     </div>
