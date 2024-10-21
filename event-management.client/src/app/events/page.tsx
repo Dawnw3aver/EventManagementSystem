@@ -1,3 +1,5 @@
+// pages/EventsPage.tsx
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -5,7 +7,8 @@ import { Layout, Menu, Typography, Card, Button, Spin, Input, Col, Row, Checkbox
 import { CalendarOutlined, EnvironmentOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import moment from 'moment';
+import dynamic from 'next/dynamic';
+const MapComponent = dynamic(() => import('../components/MapComponent'), { ssr: false });
 
 const { Header, Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -18,6 +21,8 @@ const EventsPage: React.FC = () => {
     const [collapsed, setCollapsed] = useState<boolean>(false);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [newEventId, setNewEventId] = useState<string | null>(null);
+    const [location, setLocation] = useState<string | null>(null); // Состояние для координат
+    const [address, setAddress] = useState<string | null>(null);   // Состояние для адреса
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -66,7 +71,8 @@ const EventsPage: React.FC = () => {
             description: values.description,
             startDate: values.startDate?.toISOString(),
             endDate: values.endDate?.toISOString(),
-            location: values.location,
+            location: location, // Используем строку координат
+            address: address,   // Используем адрес
             isActive: values.isActive,
         };
 
@@ -83,7 +89,6 @@ const EventsPage: React.FC = () => {
     };
 
     const handleUploadImages = async (id: string) => {
-
         const formData = new FormData();
         imageFiles.forEach(file => {
             formData.append('files', file);
@@ -102,6 +107,28 @@ const EventsPage: React.FC = () => {
         } catch (error) {
             console.error('Ошибка при загрузке изображений:', error);
         }
+    };
+
+    // Функция обратного геокодирования для получения адреса
+    const fetchAddressFromCoords = async (latitude: number, longitude: number) => {
+        try {
+            const response = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ru`);
+            if (response.data && response.data.display_name) {
+                setAddress(response.data.display_name); // Устанавливаем адрес на русском языке
+            } else {
+                setAddress("Адрес не найден");
+            }
+        } catch (error) {
+            console.error("Ошибка при получении адреса:", error);
+            setAddress("Ошибка получения адреса");
+        }
+    };
+
+    // Обрабатываем координаты как строку "latitude,longitude" и получаем адрес
+    const handleLocationChange = (coords: [number, number]) => {
+        const locationString = `${coords[0]},${coords[1]}`;
+        setLocation(locationString);
+        fetchAddressFromCoords(coords[0], coords[1]); // Получаем адрес по координатам
     };
 
     if (loading) {
@@ -167,7 +194,8 @@ const EventsPage: React.FC = () => {
                                     </Form.Item>
 
                                     <Form.Item label="Место проведения" name="location">
-                                        <Input placeholder="Введите место" />
+                                        <MapComponent center={[55.7558, 37.6176]} zoom={13} onLocationChange={handleLocationChange} />
+                                        {address && <p>Адрес: {address}</p>}
                                     </Form.Item>
 
                                     <Form.Item label="Дата начала" name="startDate">
@@ -232,7 +260,7 @@ const EventsPage: React.FC = () => {
                                         description={
                                             <>
                                                 <p><CalendarOutlined /> {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}</p>
-                                                <p><EnvironmentOutlined /> {event.location}</p>
+                                                <p><EnvironmentOutlined /> {event.address ? event.address : event.location}</p> {/* Адрес или координаты */}
                                             </>
                                         }
                                     />

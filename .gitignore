@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 #Ghost of database
 /EventManagement.API/pgdata/
+
+#Pictures from events
+/EventManagement.API/wwwroot/uploads
