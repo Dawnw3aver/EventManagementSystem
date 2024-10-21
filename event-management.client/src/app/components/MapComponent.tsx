@@ -88,7 +88,7 @@ const LocationMarker = ({ onLocationChange }: { onLocationChange?: (location: [n
 
 const MapComponent: React.FC<MapComponentProps> = ({ center = [55.7558, 37.6176], zoom, onLocationChange }) => {
   return (
-    <div style={{ position: 'relative', height: '300px', width: '100%' }}>
+    <div style={{ position: 'relative', height: '300px', width: '100%', zIndex: 1 }}>
       <MapContainer 
         center={center} 
         zoom={zoom} 
