@@ -1,7 +1,9 @@
 ﻿using EventManagement.Core.Models;
+using EventManagement.Core.ValueObjects;
 using EventManagement.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.Linq;
 
 namespace EventManagement.DataAccess.Configurations
 {
@@ -27,11 +29,6 @@ namespace EventManagement.DataAccess.Configurations
             // Настройка поля EndDate
             builder.Property(e => e.EndDate)
                 .IsRequired(); // Дата окончания мероприятия обязательна
-
-            // Настройка поля Location
-            builder.Property(e => e.Location)
-                .IsRequired()
-                .HasMaxLength(Event.MAX_LOCATION_LENGTH); // Местоположение обязательно, максимальная длина
 
             // Настройка поля OrganizerId
             builder.Property(e => e.OrganizerId)

@@ -1,4 +1,6 @@
-﻿namespace EventManagement.DataAccess.Entities
+﻿using EventManagement.Core.ValueObjects;
+
+namespace EventManagement.DataAccess.Entities
 {
     public class EventEntity
     {
@@ -12,7 +14,7 @@
 
         public DateTime EndDate { get; set; }
 
-        public string Location { get; set; } = string.Empty;
+        public Location Location { get; set; }
 
         public Guid OrganizerId { get; set; }
 

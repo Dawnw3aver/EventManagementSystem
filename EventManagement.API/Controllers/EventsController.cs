@@ -16,18 +16,21 @@ namespace EventManagement.API.Controllers
     {
         private readonly IEventsService _eventsService;
         private readonly ILoggingService _loggingService;
+        private readonly ILocationService _locationService;
         
-        public EventsController(IEventsService eventsService, ILoggingService loggingService)
+        public EventsController(IEventsService eventsService, ILoggingService loggingService, ILocationService locationService)
         {
             _eventsService = eventsService;
             _loggingService = loggingService;
+            _locationService = locationService;
+
         }
 
         [HttpGet]
         public async Task<ActionResult<List<EventsResponse>>> GetEvents()
         {
             var events = await _eventsService.GetAllEvents();
-            var response = events.Select(x => new EventsResponse(x.Id, x.Title, x.Description, x.StartDate, x.EndDate, x.Location, x.OrganizerId, x.IsActive, x.CreatedAt, x.UpdatedAt, x.ImageUrls));
+            var response = events.Select(x => new EventsResponse(x.Id, x.Title, x.Description, x.StartDate, x.EndDate, x.Location.City, x.OrganizerId, x.IsActive, x.CreatedAt, x.UpdatedAt, x.ImageUrls));
             return Ok(response);
         }
 
@@ -35,6 +38,9 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<Guid>> CreateEvent([FromBody]EventsRequest request)
         {
             var authorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var loc = await _locationService.CreateLocation(request.location);
+            if (loc.IsFailure)
+                return BadRequest(loc.Error);
 
             var (@event, error) = Event.Create(
                 Guid.NewGuid(),
@@ -42,7 +48,7 @@ namespace EventManagement.API.Controllers
                 request.description,
                 request.startDate,
                 request.endDate,
-                request.location,
+                loc.Value,
                 new Guid(authorId),
                 new List<Guid>(),
                 new List<string>(),
@@ -62,10 +68,13 @@ namespace EventManagement.API.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<ActionResult<Guid>> UpdateEvent(Guid id, [FromBody] EventsRequest request)
+        public async Task<ActionResult<Guid>> UpdateEvent(Guid id, [FromBody] EventsRequest request) //todo убрать автора
         {
             var authorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, request.location, new Guid(authorId), request.isActive);
+            var loc = await _locationService.CreateLocation(request.location);
+            if (loc.IsFailure)
+                return BadRequest(loc.Error);
+            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, loc.Value, new Guid(authorId), request.isActive);
             await _loggingService.LogActionAsync(id.ToString(), "UpdateEvent", $"Обновлено событие {request.title}");
             return Ok(eventId);
         }

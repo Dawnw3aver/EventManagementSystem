@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using EventManagement.Core.ValueObjects;
+using System.Text;
 
 namespace EventManagement.Core.Models
 {
@@ -9,14 +10,14 @@ namespace EventManagement.Core.Models
     {
         public const int MAX_TITLE_LENGTH = 250;
         public const int MAX_DESCRIPTION_LENGTH = 1000;
-        public const int MAX_LOCATION_LENGTH = 200;
+        public const int MAX_LOCATION_LENGTH = 250;
 
         private Event(Guid id, 
             string title, 
             string description, 
             DateTime startDate, 
             DateTime endDate, 
-            string location, 
+            Location location, 
             Guid organizerId, 
             List<Guid> registeredParticipantIds,
             List<string> imageUrls,
@@ -43,7 +44,7 @@ namespace EventManagement.Core.Models
           string description,
           DateTime startDate,
           DateTime endDate,
-          string location,
+          Location location,
           Guid organizerId,
           List<Guid> registeredParticipantIds,
           List<string> imageUrls,
@@ -72,12 +73,6 @@ namespace EventManagement.Core.Models
                 error.AppendLine("End date must be after the start date.");
             }
 
-            // Валидация местоположения
-            if (string.IsNullOrWhiteSpace(location) || location.Length > MAX_LOCATION_LENGTH)
-            {
-                error.AppendLine($"Location can't be empty or longer than {MAX_LOCATION_LENGTH} symbols.");
-            }
-
             // Валидация организатора
             if (organizerId == Guid.Empty)
             {
@@ -104,7 +99,7 @@ namespace EventManagement.Core.Models
 
         public DateTime EndDate { get; }
 
-        public string Location { get; } = string.Empty;
+        public Location Location { get; }
 
         public Guid OrganizerId { get;}
 

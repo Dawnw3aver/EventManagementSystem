@@ -1,5 +1,6 @@
 ﻿using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
+using EventManagement.Core.ValueObjects;
 using EventManagement.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -53,7 +54,7 @@ namespace EventManagement.DataAccess.Repositories
           string description,
           DateTime startDate,
           DateTime endDate,
-          string location,
+          Location location,
           Guid organizerId,
           bool isActive)
         {

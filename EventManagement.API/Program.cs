@@ -42,6 +42,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IEventsService, EventsService>();
 builder.Services.AddScoped<IEventsRepository, EventsRepository>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
+builder.Services.AddScoped<ILocationService, LocationService>();
 
 var app = builder.Build();
 

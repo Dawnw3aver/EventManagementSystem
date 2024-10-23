@@ -1,5 +1,6 @@
 ﻿using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
+using EventManagement.Core.ValueObjects;
 
 namespace EventManagement.Application.Services
 {
@@ -21,7 +22,7 @@ namespace EventManagement.Application.Services
             return await _eventsRepository.Create(@event);
         }
 
-        public async Task<Guid> UpdateEvent(Guid eventId, string title, string description, DateTime startDate, DateTime endDate, string location, Guid organizerId, bool isActive)
+        public async Task<Guid> UpdateEvent(Guid eventId, string title, string description, DateTime startDate, DateTime endDate, Location location, Guid organizerId, bool isActive)
         {
             return await _eventsRepository.Update(eventId, title, description, startDate, endDate, location, organizerId, isActive);
         }

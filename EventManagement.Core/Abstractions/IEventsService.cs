@@ -1,4 +1,5 @@
 ﻿using EventManagement.Core.Models;
+using EventManagement.Core.ValueObjects;
 
 namespace EventManagement.Core.Abstractions
 {
@@ -8,6 +9,6 @@ namespace EventManagement.Core.Abstractions
         Task<Guid> DeleteEvent(Guid eventId);
         Task<List<Event>> GetAllEvents();
         Task<Guid> AddImages(Guid eventId, List<string> imageUrls);
-        Task<Guid> UpdateEvent(Guid eventId, string title, string description, DateTime startDate, DateTime endDate, string location, Guid organizerId, bool isActive);
+        Task<Guid> UpdateEvent(Guid eventId, string title, string description, DateTime startDate, DateTime endDate, Location location, Guid organizerId, bool isActive);
     }
 }
