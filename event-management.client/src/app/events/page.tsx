@@ -3,11 +3,12 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Layout, Menu, Typography, Card, Button, Spin, Input, Col, Row, Checkbox, Form, DatePicker, Switch, Space, Upload, message } from 'antd';
+import { Layout, Menu, Typography, Card, Button, Spin, Input, Col, Row, Checkbox, Form, DatePicker, Switch, Space, UploadFile,Upload, message, Modal, List, Image, Carousel } from 'antd';
 import { CalendarOutlined, EnvironmentOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import dynamic from 'next/dynamic';
+import Paragraph from 'antd/es/typography/Paragraph';
 const MapComponent = dynamic(() => import('../components/MapComponent'), { ssr: false });
 
 const { Header, Footer, Sider } = Layout;
@@ -23,6 +24,8 @@ const EventsPage: React.FC = () => {
     const [newEventId, setNewEventId] = useState<string | null>(null);
     const [location, setLocation] = useState<string | null>(null); // Состояние для координат
     const [address, setAddress] = useState<string | null>(null);   // Состояние для адреса
+    const [selectedEvent, setSelectedEvent] = useState<any | null>(null); // Выбранное событие
+    const [isModalVisible, setIsModalVisible] = useState<boolean>(false); // Видимость модального окна
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -57,12 +60,12 @@ const EventsPage: React.FC = () => {
             message.error('Вы можете загружать только изображения!');
             return false;
         }
-        setImageFiles([...imageFiles, file]);
+        setImageFiles(prevFiles => [...prevFiles, file]);
         return true;
     };
 
-    const handleImageUploadRemove = (file: File) => {
-        setImageFiles(imageFiles.filter(f => f !== file));
+    const handleImageUploadRemove = (file: UploadFile) => {
+        setImageFiles(prevFiles => prevFiles.filter(f => f.name !== file.name)); // Сравнение по имени файла
     };
 
     const handleCreateEvent = async (values: any) => {
@@ -129,6 +132,16 @@ const EventsPage: React.FC = () => {
         const locationString = `${coords[0]},${coords[1]}`;
         setLocation(locationString);
         fetchAddressFromCoords(coords[0], coords[1]); // Получаем адрес по координатам
+    };
+
+    const showEventDetails = (event: any) => {
+        setSelectedEvent(event); // Сохраняем выбранное событие
+        setIsModalVisible(true); // Открываем модальное окно
+    };
+
+    const handleCancel = () => {
+        setIsModalVisible(false); // Закрытие модального окна
+        setSelectedEvent(null); // Очищаем выбранное событие
     };
 
     if (loading) {
@@ -265,7 +278,7 @@ const EventsPage: React.FC = () => {
                                         }
                                     />
                                     <div style={{ display: 'flex', justifyContent: 'center', marginTop: '15px' }}>
-                                        <Button type="primary" style={{ width: '100%' }}>
+                                        <Button type="primary" style={{ width: '100%' } } onClick={() => showEventDetails(event)}>
                                             Подробнее
                                         </Button>
                                     </div>
@@ -275,7 +288,68 @@ const EventsPage: React.FC = () => {
                     </Row>
                 </Layout>
             </Layout>
+            <Modal
+    title={selectedEvent?.title}
+    open={isModalVisible}
+    onCancel={handleCancel}
+    footer={[]}
+    width={800}
+>
+    {selectedEvent && (
+        <div>
+            {selectedEvent.imageUrls && selectedEvent.imageUrls.length > 0 ? (
+                <div>
+                <Carousel dots style={{ textAlign: 'center' }}>
+                    {selectedEvent.imageUrls.map((url: string, index: number) => (
+                        <div key={index}>
+                            <Image
+                                src={`https://localhost:7285${url}`}
+                                alt={`Изображение ${index + 1}`}
+                                style={{
+                                    borderRadius: '8px', // Закругленные края
+                                    objectFit: 'cover',
+                                    width: '100%', // Ширина изображений по размеру карусели
+                                    height: '400px' // Фиксированная высота изображений
+                                }}
+                                preview={false} // Отключение превью
+                            />
+                        </div>
+                    ))}
+                </Carousel>
+                </div>
+            ) : (
+                <Paragraph>Изображения отсутствуют</Paragraph> // Альтернативный текст, если изображений нет
+            )}
+            <p>
+                <CalendarOutlined /> {new Date(selectedEvent.startDate).toLocaleDateString()} - {new Date(selectedEvent.endDate).toLocaleDateString()}
+            </p>
+            <p>
+                <EnvironmentOutlined /> {selectedEvent.address ? selectedEvent.address : selectedEvent.location}
+            </p>
+            <Card
+                style={{
+                    backgroundColor: '#f9f9f9', // Цвет фона контейнера
+                    borderRadius: '8px', // Закруглённые края
+                    marginBottom: '20px', // Отступ снизу
+                }}
+            >
+                <Paragraph>{selectedEvent.description}</Paragraph>
+            </Card>
 
+            <Title level={4}>Полный адрес</Title>
+            <Paragraph>{selectedEvent.location}</Paragraph>
+
+            <Title level={4}>Участники</Title>
+            <List
+                bordered
+                dataSource={selectedEvent.participants}
+                renderItem={(participant: any) => (
+                    <List.Item>{participant}</List.Item>
+                )}
+            />
+        </div>
+    )}
+</Modal>             
             <Footer style={{ textAlign: 'center' }}>Event Management ©2024 Created by You</Footer>
         </Layout>
     );

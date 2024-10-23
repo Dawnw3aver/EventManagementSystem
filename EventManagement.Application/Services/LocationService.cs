@@ -2,6 +2,7 @@
 using EventManagement.Application.ResponseSchemas;
 using EventManagement.Core.Abstractions;
 using EventManagement.Core.ValueObjects;
+using System.Globalization;
 using System.Text.Json;
 
 namespace EventManagement.Application.Services
@@ -10,14 +11,18 @@ namespace EventManagement.Application.Services
     {
         public async Task<Result<Location>> CreateLocation(string location)
         {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             // Проверяем формат строки
             var parts = location.Split(',');
-            if (parts.Length != 2 || !double.TryParse(parts[0].Replace('.', ','), out var latitude) || !double.TryParse(parts[1].Replace('.', ','), out var longitude))
+            if (parts.Length != 2 ||
+                !double.TryParse(parts[0], out var latitude) ||
+                !double.TryParse(parts[1], out var longitude))
             {
                 return Result.Failure<Location>("Invalid coordinates format.");
             }
 
-            string url = $"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={latitude.ToString().Replace(',', '.')}&lon={longitude.ToString().Replace(',', '.')}&accept-language=ru";
+            string url = $"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={latitude}&lon={longitude}&accept-language=ru";
+
 
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("Mozilla/5.0 (compatible; AcmeInc/1.0)");  // Добавляем User-Agent, так как Nominatim этого требует
