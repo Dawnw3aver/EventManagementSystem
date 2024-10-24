@@ -2,6 +2,7 @@
 using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -17,12 +18,14 @@ namespace EventManagement.API.Controllers
         private readonly IEventsService _eventsService;
         private readonly ILoggingService _loggingService;
         private readonly ILocationService _locationService;
+        private readonly IServiceProvider _serviceProvider;
         
-        public EventsController(IEventsService eventsService, ILoggingService loggingService, ILocationService locationService)
+        public EventsController(IEventsService eventsService, ILoggingService loggingService, ILocationService locationService, IServiceProvider serviceProvider)
         {
             _eventsService = eventsService;
             _loggingService = loggingService;
             _locationService = locationService;
+            _serviceProvider = serviceProvider;
 
         }
 
@@ -30,7 +33,34 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<List<EventsResponse>>> GetEvents()
         {
             var events = await _eventsService.GetAllEvents();
-            var response = events.Select(x => new EventsResponse(x.Id, x.Title, x.Description, x.StartDate, x.EndDate, x.Location.City, x.OrganizerId, x.IsActive, x.CreatedAt, x.UpdatedAt, x.ImageUrls));
+            var usrManager = _serviceProvider.GetRequiredService<UserManager<User>>();
+            var response = new List<EventsResponse>();
+
+            foreach (var eventEntity in events) //todo мб оптимизировать
+            {
+                var participants = new List<string>();
+                foreach (var participantId in eventEntity.RegisteredParticipantIds)
+                {
+                    var user = await usrManager.FindByIdAsync(participantId.ToString());
+                    participants.Add(user?.UserName ?? "Unknown");
+                }
+
+                response.Add(new EventsResponse(
+                    eventEntity.Id,
+                    eventEntity.Title,
+                    eventEntity.Description,
+                    eventEntity.StartDate,
+                    eventEntity.EndDate,
+                    eventEntity.Location,
+                    eventEntity.OrganizerId,
+                    participants,
+                    eventEntity.IsActive,
+                    eventEntity.CreatedAt,
+                    eventEntity.UpdatedAt,
+                    eventEntity.ImageUrls
+                ));
+            }
+
             return Ok(response);
         }
 
@@ -94,7 +124,7 @@ namespace EventManagement.API.Controllers
             return Ok(eventId);
         }
 
-        [HttpPost("/upload-images")]
+        [HttpPost("upload-images")]
         public async Task<IActionResult> UploadImages(Guid id, IFormFileCollection files) //todo проверить, что грузят именно изображения, ограничить количество
         {
             if (!files.Any())
@@ -129,6 +159,20 @@ namespace EventManagement.API.Controllers
             await _eventsService.AddImages(id, imageUrls);
 
             return Ok(new { ImageUrls = imageUrls });
+        }
+
+        [HttpPost("join")]
+        public async Task<ActionResult> JoinEvent([FromQuery]Guid eventId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var usrManager = _serviceProvider.GetRequiredService<UserManager<User>>();
+            User user = await usrManager.FindByIdAsync(userId);
+
+            var result = await _eventsService.JoinEvent(eventId, user);
+            if (result.IsFailure)
+                return BadRequest(result.Error);
+
+            return Ok();
         }
     }
 }

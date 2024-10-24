@@ -1,4 +1,5 @@
-﻿using EventManagement.Core.Abstractions;
+﻿using CSharpFunctionalExtensions;
+using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
 using EventManagement.Core.ValueObjects;
 
@@ -32,9 +33,14 @@ namespace EventManagement.Application.Services
             return await _eventsRepository.Delete(eventId);
         }
 
-        public async Task<Guid> AddImages(Guid eventId, List<string> imageUrls)
+        public async Task<Result> AddImages(Guid eventId, List<string> imageUrls)
         {
             return await _eventsRepository.AddImages(eventId, imageUrls);
+        }
+
+        public async Task<Result> JoinEvent(Guid eventId, User user)
+        {
+            return await _eventsRepository.Join(eventId, user);
         }
     }
 }

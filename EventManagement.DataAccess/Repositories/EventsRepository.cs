@@ -1,8 +1,11 @@
-﻿using EventManagement.Core.Abstractions;
+﻿using CSharpFunctionalExtensions;
+using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
 using EventManagement.Core.ValueObjects;
 using EventManagement.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Metadata.Ecma335;
+using System.Security.Claims;
 
 namespace EventManagement.DataAccess.Repositories
 {
@@ -82,17 +85,36 @@ namespace EventManagement.DataAccess.Repositories
             return eventId;
         }
 
-        public async Task<Guid> AddImages(Guid eventId, List<string> imageUrls)
+        public async Task<Result> AddImages(Guid eventId, List<string> imageUrls)
         {
             // Найти событие по его Id
-            var eventEntity = await _context.Events.FindAsync(eventId) 
-                ?? throw new InvalidOperationException($"Event with ID {eventId} not found.");
+            var eventEntity = await _context.Events.FindAsync(eventId);
+            if(eventEntity == null)
+                return Result.Failure($"Event with ID {eventId} not found.");
             eventEntity.ImageUrls.AddRange(imageUrls);
 
             // Сохранить изменения в базе данных
             await _context.SaveChangesAsync();
 
-            return eventId;
+            return Result.Success();
+        }
+
+        public async Task<Result> Join(Guid eventId, User user)
+        {
+            var @event = await _context.Events.FindAsync(eventId);
+            if(@event == null)
+                return Result.Failure($"Event with ID {eventId} not found.");
+
+            if (@event.RegisteredParticipantIds.Contains(new Guid(user.Id)))
+            {
+                return Result.Failure("User is already registered for the event");
+            }
+
+            @event.RegisteredParticipantIds.Add(new Guid(user.Id));
+
+            await _context.SaveChangesAsync();
+
+            return Result.Success("User successfully joined the event");
         }
     }
 }

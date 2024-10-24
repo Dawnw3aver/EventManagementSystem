@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { Layout, Menu, Typography, Card, Button, Spin, Input, Col, Row, Checkbox, Form, DatePicker, Switch, Space, UploadFile,Upload, message, Modal, List, Image, Carousel } from 'antd';
 import { CalendarOutlined, EnvironmentOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import dynamic from 'next/dynamic';
 import Paragraph from 'antd/es/typography/Paragraph';
 const MapComponent = dynamic(() => import('../components/MapComponent'), { ssr: false });
@@ -98,7 +98,7 @@ const EventsPage: React.FC = () => {
         });
 
         try {
-            await axios.post(`https://localhost:7285/upload-images?id=${id}`, formData, {
+            await axios.post(`https://localhost:7285/api/v1/events/upload-images?id=${id}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -135,13 +135,43 @@ const EventsPage: React.FC = () => {
     };
 
     const showEventDetails = (event: any) => {
-        setSelectedEvent(event); // Сохраняем выбранное событие
-        setIsModalVisible(true); // Открываем модальное окно
+        setSelectedEvent({
+            ...event,
+            participants: event?.participants ?? [] // Инициализируем пустым массивом, если participants отсутствует
+        });
+        setIsModalVisible(true);
     };
 
     const handleCancel = () => {
         setIsModalVisible(false); // Закрытие модального окна
         setSelectedEvent(null); // Очищаем выбранное событие
+    };
+
+    const handleJoinEvent = async (eventId: string) => {
+        try {
+            const response = await axios.post(
+                `https://localhost:7285/api/v1/events/join?eventId=${eventId}`, 
+                {}, 
+                { withCredentials: true }
+            );
+    
+            if (response.status === 200) {
+                message.success('Вы успешно присоединились к событию');
+                setSelectedEvent((prev: any) => ({
+                    ...prev,
+                    participants: prev?.participants ? [...prev.participants, 'Вы'] : ['Вы'] // Убедитесь, что participants существует
+                }));
+            }
+        } catch (error) {
+            const axiosError = error as AxiosError;
+            if (axiosError.response?.status === 401) {
+                message.error('Необходимо войти в систему, чтобы присоединиться к событию.');
+            } else if (axiosError.response?.status === 400) {
+                message.warning('Вы уже присоединились к этому событию.');
+            } else {
+                message.error('Ошибка при попытке присоединиться к событию.');
+            }
+        }
     };
 
     if (loading) {
@@ -219,7 +249,7 @@ const EventsPage: React.FC = () => {
                                         <DatePicker style={{ width: '100%' }} />
                                     </Form.Item>
 
-                                    <Form.Item label="Платное событие" name="isActive" valuePropName="checked">
+                                    <Form.Item label="Активно" name="isActive" valuePropName="checked">
                                         <Switch />
                                     </Form.Item>
 
@@ -273,7 +303,7 @@ const EventsPage: React.FC = () => {
                                         description={
                                             <>
                                                 <p><CalendarOutlined /> {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}</p>
-                                                <p><EnvironmentOutlined /> {event.address ? event.address : event.location}</p> {/* Адрес или координаты */}
+                                                <p><EnvironmentOutlined /> {event.location.city}</p> {/* Адрес или координаты */}
                                             </>
                                         }
                                     />
@@ -289,67 +319,90 @@ const EventsPage: React.FC = () => {
                 </Layout>
             </Layout>
             <Modal
-    title={selectedEvent?.title}
-    open={isModalVisible}
-    onCancel={handleCancel}
-    footer={[]}
-    width={800}
->
-    {selectedEvent && (
-        <div>
-            {selectedEvent.imageUrls && selectedEvent.imageUrls.length > 0 ? (
-                <div>
-                <Carousel dots style={{ textAlign: 'center' }}>
-                    {selectedEvent.imageUrls.map((url: string, index: number) => (
-                        <div key={index}>
-                            <Image
-                                src={`https://localhost:7285${url}`}
-                                alt={`Изображение ${index + 1}`}
-                                style={{
-                                    borderRadius: '8px', // Закругленные края
-                                    objectFit: 'cover',
-                                    width: '100%', // Ширина изображений по размеру карусели
-                                    height: '400px' // Фиксированная высота изображений
-                                }}
-                                preview={false} // Отключение превью
-                            />
-                        </div>
-                    ))}
-                </Carousel>
-                </div>
-            ) : (
-                <Paragraph>Изображения отсутствуют</Paragraph> // Альтернативный текст, если изображений нет
-            )}
-            <p>
-                <CalendarOutlined /> {new Date(selectedEvent.startDate).toLocaleDateString()} - {new Date(selectedEvent.endDate).toLocaleDateString()}
-            </p>
-            <p>
-                <EnvironmentOutlined /> {selectedEvent.address ? selectedEvent.address : selectedEvent.location}
-            </p>
-            <Card
-                style={{
-                    backgroundColor: '#f9f9f9', // Цвет фона контейнера
-                    borderRadius: '8px', // Закруглённые края
-                    marginBottom: '20px', // Отступ снизу
-                }}
+                title={selectedEvent?.title}
+                open={isModalVisible}
+                onCancel={handleCancel}
+                footer={[
+                    <Button key="join" type="primary" onClick={() => handleJoinEvent(selectedEvent?.id)}>
+                        Присоединиться
+                    </Button>
+                ]}
+                width={800}
             >
-                <Paragraph>{selectedEvent.description}</Paragraph>
-            </Card>
+                {selectedEvent && (
+                    <div>
+                        {selectedEvent.imageUrls && selectedEvent.imageUrls.length > 0 ? (
+                            <div>
+                            <Carousel dots style={{ textAlign: 'center' }}>
+                                {selectedEvent.imageUrls.map((url: string, index: number) => (
+                                    <div key={index}>
+                                        <Image
+                                            src={`https://localhost:7285${url}`}
+                                            alt={`Изображение ${index + 1}`}
+                                            style={{
+                                                borderRadius: '8px', // Закругленные края
+                                                objectFit: 'cover',
+                                                width: '100%', // Ширина изображений по размеру карусели
+                                                height: '400px' // Фиксированная высота изображений
+                                            }}
+                                            preview={false} // Отключение превью
+                                        />
+                                    </div>
+                                ))}
+                            </Carousel>
+                            </div>
+                        ) : (
+                            <Paragraph>Изображения отсутствуют</Paragraph> // Альтернативный текст, если изображений нет
+                        )}
+                        <Card style={{
+                                backgroundColor: '#f9f9f9', // Цвет фона контейнера
+                                borderRadius: '8px', // Закруглённые края
+                                marginBottom: '20px', // Отступ снизу
+                            }}>
+                            <p>
+                                <CalendarOutlined /> {new Date(selectedEvent.startDate).toLocaleDateString()} - {new Date(selectedEvent.endDate).toLocaleDateString()}
+                            </p>
+                            <p>
+                                <a 
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location.address)}`}
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                >
+                                    <EnvironmentOutlined /> {selectedEvent.location.city}
+                                </a>
+                            </p>
+                        </Card>
+                        <Card
+                            style={{
+                                backgroundColor: '#f9f9f9', // Цвет фона контейнера
+                                borderRadius: '8px', // Закруглённые края
+                                marginBottom: '20px', // Отступ снизу
+                            }}
+                        >
+                            <Paragraph>{selectedEvent.description}</Paragraph>
+                        </Card>
 
-            <Title level={4}>Полный адрес</Title>
-            <Paragraph>{selectedEvent.location}</Paragraph>
+                        <Card
+                            style={{
+                                backgroundColor: '#f9f9f9', // Цвет фона контейнера
+                                borderRadius: '8px', // Закруглённые края
+                                marginBottom: '20px', // Отступ снизу
+                            }}>
+                        <Title level={5}>Адрес</Title>
+                        <Paragraph>{selectedEvent.location.address}</Paragraph>
+                        </Card>
 
-            <Title level={4}>Участники</Title>
-            <List
-                bordered
-                dataSource={selectedEvent.participants}
-                renderItem={(participant: any) => (
-                    <List.Item>{participant}</List.Item>
+                        <Title level={4}>Участники</Title>
+                        <List
+                            bordered
+                            dataSource={selectedEvent.participants}
+                            renderItem={(participant: any) => (
+                                <List.Item>{participant}</List.Item>
+                            )}
+                        />
+                    </div>
                 )}
-            />
-        </div>
-    )}
-</Modal>             
+            </Modal>             
             <Footer style={{ textAlign: 'center' }}>Event Management ©2024 Created by You</Footer>
         </Layout>
     );
