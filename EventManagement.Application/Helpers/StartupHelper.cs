@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using EventManagement.Core.Enums;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EventManagement.Application.Helpers
@@ -8,7 +9,7 @@ namespace EventManagement.Application.Helpers
         public static async Task InitializeRoles(IServiceProvider serviceProvider)
         {
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            string[] roleNames = { "Admin", "User"};
+            string[] roleNames = { UserRoles.Admin, UserRoles.User };
             IdentityResult roleResult;
 
             foreach (var roleName in roleNames)

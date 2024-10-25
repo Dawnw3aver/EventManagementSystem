@@ -4,8 +4,6 @@ using EventManagement.Core.Models;
 using EventManagement.Core.ValueObjects;
 using EventManagement.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection.Metadata.Ecma335;
-using System.Security.Claims;
 
 namespace EventManagement.DataAccess.Repositories
 {
@@ -26,6 +24,15 @@ namespace EventManagement.DataAccess.Repositories
                 .ToList();
 
             return events;
+        }
+
+        public async Task<Result<Event>> GetById(Guid eventId)
+        {
+            var e = await _context.Events.FindAsync(eventId);
+            if (e == null)
+                return Result.Failure<Event>("Event not found");
+            else
+                return Result.Success(Event.Create(e.Id, e.Title, e.Description, e.StartDate, e.EndDate, e.Location, e.OrganizerId, e.RegisteredParticipantIds, e.ImageUrls, e.CreatedAt, e.UpdatedAt, e.IsActive).Event);
         }
 
         public async Task<Guid> Create(Event @event)
@@ -58,7 +65,6 @@ namespace EventManagement.DataAccess.Repositories
           DateTime startDate,
           DateTime endDate,
           Location location,
-          Guid organizerId,
           bool isActive)
         {
             await _context.Events
@@ -69,7 +75,6 @@ namespace EventManagement.DataAccess.Repositories
                     .SetProperty(e => e.StartDate, e => startDate)
                     .SetProperty(e => e.EndDate, e => endDate)
                     .SetProperty(e => e.Location, e => location)
-                    .SetProperty(e => e.OrganizerId, e => organizerId)
                     .SetProperty(e => e.IsActive, e => isActive)
                     .SetProperty(e => e.UpdatedAt, e => DateTime.UtcNow));
 

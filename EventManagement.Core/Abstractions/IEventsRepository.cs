@@ -11,6 +11,7 @@ namespace EventManagement.Core.Abstractions
         Task<Result> AddImages(Guid eventId, List<string> imageUrls);
         Task<Result> Join(Guid eventId, User user);
         Task<List<Event>> Get();
-        Task<Guid> Update(Guid eventId, string title, string description, DateTime startDate, DateTime endDate, Location location, Guid organizerId, bool isActive);
+        Task<Result<Event>> GetById(Guid eventId);
+        Task<Guid> Update(Guid eventId, string title, string description, DateTime startDate, DateTime endDate, Location location, bool isActive);
     }
 }

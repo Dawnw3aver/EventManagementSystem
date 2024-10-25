@@ -2,6 +2,7 @@
 using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
 using EventManagement.Core.ValueObjects;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace EventManagement.Application.Services
 {
@@ -23,9 +24,9 @@ namespace EventManagement.Application.Services
             return await _eventsRepository.Create(@event);
         }
 
-        public async Task<Guid> UpdateEvent(Guid eventId, string title, string description, DateTime startDate, DateTime endDate, Location location, Guid organizerId, bool isActive)
+        public async Task<Guid> UpdateEvent(Guid eventId, string title, string description, DateTime startDate, DateTime endDate, Location location, bool isActive)
         {
-            return await _eventsRepository.Update(eventId, title, description, startDate, endDate, location, organizerId, isActive);
+            return await _eventsRepository.Update(eventId, title, description, startDate, endDate, location, isActive);
         }
 
         public async Task<Guid> DeleteEvent(Guid eventId)
@@ -41,6 +42,14 @@ namespace EventManagement.Application.Services
         public async Task<Result> JoinEvent(Guid eventId, User user)
         {
             return await _eventsRepository.Join(eventId, user);
+        }
+
+        public async Task<bool> IsAuthor(Guid eventId, User user)
+        {
+            var res = await _eventsRepository.GetById(eventId);
+            var @event = res.Value;
+            Guid userId = new(user.Id);
+            return userId == @event.OrganizerId;
         }
     }
 }

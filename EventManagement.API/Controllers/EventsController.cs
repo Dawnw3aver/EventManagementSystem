@@ -1,5 +1,6 @@
 ﻿using EventManagement.API.Contracts;
 using EventManagement.Core.Abstractions;
+using EventManagement.Core.Enums;
 using EventManagement.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -19,21 +20,21 @@ namespace EventManagement.API.Controllers
         private readonly ILoggingService _loggingService;
         private readonly ILocationService _locationService;
         private readonly IServiceProvider _serviceProvider;
-        
+        private readonly UserManager<User> _userManager;
+
         public EventsController(IEventsService eventsService, ILoggingService loggingService, ILocationService locationService, IServiceProvider serviceProvider)
         {
             _eventsService = eventsService;
             _loggingService = loggingService;
             _locationService = locationService;
             _serviceProvider = serviceProvider;
-
+            _userManager = _serviceProvider.GetRequiredService<UserManager<User>>();
         }
 
         [HttpGet]
         public async Task<ActionResult<List<EventsResponse>>> GetEvents()
         {
             var events = await _eventsService.GetAllEvents();
-            var usrManager = _serviceProvider.GetRequiredService<UserManager<User>>();
             var response = new List<EventsResponse>();
 
             foreach (var eventEntity in events) //todo мб оптимизировать
@@ -41,7 +42,7 @@ namespace EventManagement.API.Controllers
                 var participants = new List<string>();
                 foreach (var participantId in eventEntity.RegisteredParticipantIds)
                 {
-                    var user = await usrManager.FindByIdAsync(participantId.ToString());
+                    var user = await _userManager.FindByIdAsync(participantId.ToString());
                     participants.Add(user?.UserName ?? "Unknown");
                 }
 
@@ -98,13 +99,19 @@ namespace EventManagement.API.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<ActionResult<Guid>> UpdateEvent(Guid id, [FromBody] EventsRequest request) //todo убрать автора
+        public async Task<ActionResult<Guid>> UpdateEvent(Guid id, [FromBody] EventsRequest request)
         {
             var authorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var user = await _userManager.FindByIdAsync(authorId);
+            bool isAdmin = await _userManager.IsInRoleAsync(user, UserRoles.Admin);
+            bool isAuthor = await _eventsService.IsAuthor(id, user);
+            if (!isAdmin && !isAuthor)
+                return Forbid();
+
             var loc = await _locationService.CreateLocation(request.location);
             if (loc.IsFailure)
                 return BadRequest(loc.Error);
-            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, loc.Value, new Guid(authorId), request.isActive);
+            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, loc.Value, request.isActive);
             await _loggingService.LogActionAsync(id.ToString(), "UpdateEvent", $"Обновлено событие {request.title}");
             return Ok(eventId);
         }
@@ -165,8 +172,7 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult> JoinEvent([FromQuery]Guid eventId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var usrManager = _serviceProvider.GetRequiredService<UserManager<User>>();
-            User user = await usrManager.FindByIdAsync(userId);
+            User user = await _userManager.FindByIdAsync(userId);
 
             var result = await _eventsService.JoinEvent(eventId, user);
             if (result.IsFailure)
