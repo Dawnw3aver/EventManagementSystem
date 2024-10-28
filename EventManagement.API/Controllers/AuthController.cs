@@ -21,26 +21,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using EventManagement.Application.Helpers;
 using EventManagement.Core.Abstractions;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventManagement.API.Controllers;
 
-/// <summary>
-/// Provides extension methods for <see cref="IEndpointRouteBuilder"/> to add identity endpoints.
-/// </summary>
 public static class AuthController
 {
-    // Validate the email address using DataAnnotations like the UserValidator does when RequireUniqueEmail = true.
     private static readonly EmailAddressAttribute _emailAddressAttribute = new();
-
-    /// <summary>
-    /// Add endpoints for registering, logging in, and logging out using ASP.NET Core Identity.
-    /// </summary>
-    /// <typeparam name="TUser">The type describing the user. This should match the generic parameter in <see cref="UserManager{TUser}"/>.</typeparam>
-    /// <param name="endpoints">
-    /// The <see cref="IEndpointRouteBuilder"/> to add the identity endpoints to.
-    /// Call <see cref="EndpointRouteBuilderExtensions.MapGroup(IEndpointRouteBuilder, string)"/> to add a prefix to all the endpoints.
-    /// </param>
-    /// <returns>An <see cref="IEndpointConventionBuilder"/> to further customize the added endpoints.</returns>
     public static IEndpointConventionBuilder MapCustomIdentityApi<TUser>(this IEndpointRouteBuilder endpoints)
         where TUser : class, new()
     {
@@ -48,7 +35,7 @@ public static class AuthController
 
         var timeProvider = endpoints.ServiceProvider.GetRequiredService<TimeProvider>();
         var bearerTokenOptions = endpoints.ServiceProvider.GetRequiredService<IOptionsMonitor<BearerTokenOptions>>();
-        var emailSender = new EmailSender<TUser>();
+        var emailSender = endpoints.ServiceProvider.GetRequiredService<IEmailSender<TUser>>();
         var linkGenerator = endpoints.ServiceProvider.GetRequiredService<LinkGenerator>();
 
         // We'll figure out a unique endpoint name based on the final route pattern during endpoint generation.
@@ -60,6 +47,16 @@ public static class AuthController
         // https://github.com/dotnet/aspnetcore/issues/47338
         routeGroup.MapPost("/register", async Task<Results<Ok, ValidationProblem>> ([FromBody] CustomRegisterRequest registration, HttpContext context, [FromServices] IServiceProvider sp) =>
         {
+            var results = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(registration, new ValidationContext(registration), results, true))
+            {
+                var errors = results
+                .GroupBy(e => e.MemberNames.FirstOrDefault() ?? string.Empty)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+
+                return TypedResults.ValidationProblem(errors);
+            }
+
             var userManager = sp.GetRequiredService<UserManager<TUser>>();
             var loggingService = sp.GetRequiredService<ILoggingService>();
 
@@ -77,16 +74,12 @@ public static class AuthController
                 return CreateValidationProblem(IdentityResult.Failed(userManager.ErrorDescriber.InvalidEmail(email)));
             }
             var user = new TUser();
-            string userId = string.Empty;
-            string userName = string.Empty;
             if (user is User myUser)
             {
                 myUser.FirstName = registration.FirstName;
                 myUser.MiddleName = registration.MiddleName;
                 myUser.LastName = registration.LastName;
                 myUser.BirthDate = registration.BirthDate;
-                userId = myUser.Id;
-                userName = myUser.UserName;
             }
 
             await userStore.SetUserNameAsync(user, email, CancellationToken.None);
@@ -100,7 +93,8 @@ public static class AuthController
             }
 
             await SendConfirmationEmailAsync(user, userManager, context, email);
-            await loggingService.LogActionAsync(userId, "register", $"Зарегистрирован новый пользователь {userName}");
+            var u = user as User;
+            await loggingService.LogActionAsync(u.Id, "register", $"Зарегистрирован новый пользователь {u.UserName}");
             return TypedResults.Ok();
         });
 

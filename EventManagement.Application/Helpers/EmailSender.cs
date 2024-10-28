@@ -2,7 +2,7 @@
 using System.Net.Mail;
 using System.Net;
 using Microsoft.AspNetCore.Identity;
-using EventManagement.Core.Models;
+using EventManagement.Core.Abstractions;
 
 namespace EventManagement.Application.Helpers
 {
@@ -30,7 +30,7 @@ namespace EventManagement.Application.Helpers
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress("MS_9Q0cf6@trial-v69oxl5n3jkl785k.mlsender.net"),
+                From = new MailAddress("support@eventify.com"),
                 Subject = subject,
                 Body = htmlMessage,
                 IsBodyHtml = true

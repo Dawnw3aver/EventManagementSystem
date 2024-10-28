@@ -1,0 +1,111 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Уведомление о событии</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #4CAF50;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .content {
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .event-title {
+            color: #333;
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 0;
+        }
+
+        .event-details {
+            margin: 15px 0;
+            font-size: 16px;
+        }
+
+            .event-details p {
+                margin: 5px 0;
+            }
+
+        .event-description {
+            margin: 20px 0;
+            font-size: 16px;
+            color: #666;
+        }
+
+        .cta-button {
+            display: block;
+            width: fit-content;
+            margin: 0 auto;
+            background-color: #4CAF50;
+            color: #fff;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .footer {
+            background-color: #f4f4f4;
+            color: #888;
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+        }
+
+            .footer a {
+                color: #4CAF50;
+                text-decoration: none;
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            Уведомление о событии
+        </div>
+        <div class="content">
+            <p class="event-title">Событие: {{eventTitle}}</p>
+            <div class="event-details">
+                <p><strong>Дата:</strong> {{eventDate}}</p>
+                <p><strong>Место:</strong> {{eventLocation}}</p>
+            </div>
+            <p class="event-description">
+                {{eventDescription}}
+            </p>
+            <a href="{{eventLink}}" class="cta-button">Перейти к событию</a>
+        </div>
+        <div class="footer">
+            Вы получили это уведомление, так как являетесь участником события.
+            <br>
+            <a href="{{unsubscribeLink}}">Отписаться от уведомлений</a>
+        </div>
+    </div>
+</body>
+</html>

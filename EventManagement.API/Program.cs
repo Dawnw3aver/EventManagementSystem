@@ -43,6 +43,8 @@ builder.Services.AddScoped<IEventsService, EventsService>();
 builder.Services.AddScoped<IEventsRepository, EventsRepository>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddHostedService<EventNotificationService>();
 
 var app = builder.Build();
 

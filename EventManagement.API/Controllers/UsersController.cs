@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using EventManagement.API.Contracts;  // Путь к контрактам
 using EventManagement.Core.Models;
-using EventManagement.Core.Abstractions;   // Путь к модели пользователя
+using EventManagement.Core.Abstractions;
+using System.ComponentModel.DataAnnotations;   // Путь к модели пользователя
 
 namespace EventManagement.API.Controllers
 {
@@ -15,12 +16,18 @@ namespace EventManagement.API.Controllers
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ILoggingService _loggingService;
+        private readonly IServiceProvider _serviceProvider;
+        private static readonly EmailAddressAttribute _emailAddressAttribute = new();
 
-        public UsersController(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, ILoggingService loggingService)
+        public UsersController(UserManager<User> userManager, 
+            RoleManager<IdentityRole> roleManager, 
+            ILoggingService loggingService, 
+            IServiceProvider serviceProvider)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _loggingService = loggingService;
+            _serviceProvider = serviceProvider;
         }
 
         [HttpGet]
@@ -50,6 +57,14 @@ namespace EventManagement.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Guid>> CreateUser([FromBody] UsersRequest request)
         {
+            var userStore = _serviceProvider.GetRequiredService<IUserStore<User>>();
+            var emailStore = (IUserEmailStore<User>)userStore;
+            var email = request.Email;
+            if (string.IsNullOrEmpty(email) || !_emailAddressAttribute.IsValid(email))
+            {
+                return BadRequest("Invalid email");
+            }
+
             var user = new User
             {
                 Email = request.Email,
@@ -60,6 +75,9 @@ namespace EventManagement.API.Controllers
                 LastName = request.LastName,
                 BirthDate = request.BirthDate
             };
+
+            await userStore.SetUserNameAsync(user, user.Email, CancellationToken.None);
+            await emailStore.SetEmailAsync(user, user.Email, CancellationToken.None);
 
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
