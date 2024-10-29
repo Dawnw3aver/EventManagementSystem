@@ -43,6 +43,10 @@ namespace EventManagement.Application.Services
         {
             return await _eventsRepository.Join(eventId, user);
         }
+        public async Task<Result> LeaveEvent(Guid eventId, User user)
+        {
+            return await _eventsRepository.Leave(eventId, user);
+        }
 
         public async Task<bool> IsAuthor(Guid eventId, User user)
         {

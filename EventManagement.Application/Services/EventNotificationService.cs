@@ -109,7 +109,7 @@ namespace EventManagement.Application.Services
             );
         }
 
-        private void ClearNotificationQueue()
+        private void ClearNotificationQueue() //todo очередь не должна пропадать после перезапуска
         {
             var keysToRemove = _lastNotificationTimes
              .Where(kvp => (DateTime.Now - kvp.Value).TotalHours > 24)

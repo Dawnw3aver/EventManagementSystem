@@ -180,5 +180,18 @@ namespace EventManagement.API.Controllers
 
             return Ok();
         }
+
+        [HttpPost("leave")]
+        public async Task<ActionResult> LeaveEvent([FromQuery] Guid eventId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            User user = await _userManager.FindByIdAsync(userId);
+
+            var result = await _eventsService.LeaveEvent(eventId, user);
+            if (result.IsFailure)
+                return BadRequest(result.Error);
+
+            return Ok();
+        }
     }
 }

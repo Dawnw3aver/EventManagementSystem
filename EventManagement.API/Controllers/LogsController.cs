@@ -19,8 +19,8 @@ public class LogsController : ControllerBase
     {
         var logs = await _context.LogEntries
             .OrderByDescending(log => log.Timestamp)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            //.Skip((page - 1) * pageSize)
+            //.Take(pageSize)
             .ToListAsync();
 
         return Ok(logs);

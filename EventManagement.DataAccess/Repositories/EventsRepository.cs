@@ -74,7 +74,11 @@ namespace EventManagement.DataAccess.Repositories
                     .SetProperty(e => e.Description, e => description)
                     .SetProperty(e => e.StartDate, e => startDate)
                     .SetProperty(e => e.EndDate, e => endDate)
-                    .SetProperty(e => e.Location, e => location)
+                    .SetProperty(e => e.Location.Address, e => location.Address)
+                    .SetProperty(e => e.Location.City, e => location.City)
+                    .SetProperty(e => e.Location.Country, e => location.Country)
+                    .SetProperty(e => e.Location.Latitude, e => location.Latitude)
+                    .SetProperty(e => e.Location.Longitude, e => location.Longitude)
                     .SetProperty(e => e.IsActive, e => isActive)
                     .SetProperty(e => e.UpdatedAt, e => DateTime.UtcNow));
 
@@ -120,6 +124,24 @@ namespace EventManagement.DataAccess.Repositories
             await _context.SaveChangesAsync();
 
             return Result.Success("User successfully joined the event");
+        }
+
+        public async Task<Result> Leave(Guid eventId, User user)
+        {
+            var @event = await _context.Events.FindAsync(eventId);
+            if (@event == null)
+                return Result.Failure($"Event with ID {eventId} not found.");
+
+            if (!@event.RegisteredParticipantIds.Contains(new Guid(user.Id)))
+            {
+                return Result.Failure("User is not registered for the event");
+            }
+
+            @event.RegisteredParticipantIds.Remove(new Guid(user.Id));
+
+            await _context.SaveChangesAsync();
+
+            return Result.Success("User successfully left the event");
         }
     }
 }

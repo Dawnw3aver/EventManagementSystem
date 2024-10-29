@@ -174,6 +174,27 @@ const EventsPage: React.FC = () => {
         }
     };
 
+    const handleLeaveEvent = async (eventId: string) => {
+        try {
+            const response = await axios.post(
+                `https://localhost:7285/api/v1/events/leave?eventId=${eventId}`, 
+                {}, 
+                { withCredentials: true }
+            );
+    
+            if (response.status === 200) {
+                message.success('Вы успешно отписались от события');
+                // setSelectedEvent((prev: any) => ({
+                //     ...prev,
+                //     participants: prev?.participants ? [...prev.participants, 'Вы'] : ['Вы'] // Убедитесь, что participants существует
+                // }));
+            }
+        } catch (error) {
+            const axiosError = error as AxiosError;
+            message.error("Ошибка при отписке от события" + axiosError.message);
+        }
+    };
+
     if (loading) {
         return (
             <div style={{ textAlign: 'center', marginTop: '50px' }}>
@@ -323,9 +344,12 @@ const EventsPage: React.FC = () => {
                 open={isModalVisible}
                 onCancel={handleCancel}
                 footer={[
-                    <Button key="join" type="primary" onClick={() => handleJoinEvent(selectedEvent?.id)}>
-                        Присоединиться
+                    <><Button key="join" type="primary" onClick={() => handleJoinEvent(selectedEvent?.id)}>
+                        Подписаться
                     </Button>
+                    <Button key="leave" type="primary" onClick={() => handleLeaveEvent(selectedEvent?.id)}>
+                        Отписаться
+                    </Button></>
                 ]}
                 width={800}
             >
