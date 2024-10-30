@@ -22,6 +22,7 @@ using Microsoft.Extensions.Options;
 using EventManagement.Application.Helpers;
 using EventManagement.Core.Abstractions;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Authentication;
 
 namespace EventManagement.API.Controllers;
 
@@ -98,7 +99,7 @@ public static class AuthController
             return TypedResults.Ok();
         });
 
-        routeGroup.MapPost("/login", async Task<Results<Ok<AccessTokenResponse>, EmptyHttpResult, ProblemHttpResult>> ([FromBody] LoginRequest login, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies, [FromServices] IServiceProvider sp) =>
+        routeGroup.MapPost("/login", async Task<IResult> ([FromBody] LoginRequest login, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies, [FromServices] IServiceProvider sp) =>
         {
             var signInManager = sp.GetRequiredService<SignInManager<TUser>>();
             var loggingService = sp.GetRequiredService<ILoggingService>();
@@ -126,11 +127,41 @@ public static class AuthController
                 return TypedResults.Problem(result.ToString(), statusCode: StatusCodes.Status401Unauthorized);
             }
 
-            var user = await userManager.FindByEmailAsync(login.Email) as User;
-            await loggingService.LogActionAsync(user.Id, "login", $"Пользователь {user.UserName} выполнил вход в систему");
+            var user = await userManager.FindByEmailAsync(login.Email);
+            var user1 = user as User;
+            await loggingService.LogActionAsync(user1.Id, "login", $"Пользователь {user1.UserName} выполнил вход в систему");
             // The signInManager already produced the needed response in the form of a cookie or bearer token.
-            return TypedResults.Empty;
+            return TypedResults.Ok(new
+            {
+                userName = user1.UserName,
+                userRole = await userManager.GetRolesAsync(user) // Получаем первую роль пользователя
+            });
         });
+
+        routeGroup.MapPost("/logout", async Task<IResult> (bool? useCookies, [FromServices] IServiceProvider sp) =>
+        {
+            var signInManager = sp.GetRequiredService<SignInManager<TUser>>();
+            var userManager = sp.GetRequiredService<UserManager<TUser>>();
+            var loggingService = sp.GetRequiredService<ILoggingService>();
+
+            // Получаем текущего пользователя
+            var user = sp.GetService<IHttpContextAccessor>()?.HttpContext?.User;
+            if (user == null || !user.Identity.IsAuthenticated)
+            {
+                return TypedResults.Unauthorized(); // Если пользователь не аутентифицирован
+            }
+
+            // Выход пользователя
+            await signInManager.SignOutAsync();
+
+            // Логируем действие выхода
+            var userId = userManager.GetUserId(user);
+            var userInstance = await userManager.FindByIdAsync(userId) as User;
+            await loggingService.LogActionAsync(userId, "logout", $"Пользователь {userInstance.UserName} вышел из системы");
+
+            return TypedResults.Ok("Вы успешно вышли из системы");
+        });
+
 
         routeGroup.MapPost("/refresh", async Task<Results<Ok<AccessTokenResponse>, UnauthorizedHttpResult, SignInHttpResult, ChallengeHttpResult>> ([FromBody] RefreshRequest refreshRequest, [FromServices] IServiceProvider sp) =>
         {

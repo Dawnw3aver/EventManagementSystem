@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import MenuComponent from "./components/MenuComponent";
+import locale from 'antd/locale/ru_RU';
+import moment from 'moment';
+import 'moment/locale/ru';
+import { ConfigProvider } from "antd";
+moment.locale("ru");
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -26,7 +32,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <MenuComponent/>
+        <ConfigProvider locale={locale}>
+          {children}
+        </ConfigProvider>
       </body>
     </html>
   );
