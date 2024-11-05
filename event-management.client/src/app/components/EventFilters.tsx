@@ -21,7 +21,18 @@ const EventFilters: React.FC<EventFiltersProps> = ({ events, onFilterApply, orig
     }, [events]);
 
     const applyFilters = (values: any) => {
+        console.log(values);
         const { location, date, category } = values;
+
+        const noFiltersApplied = 
+            (!location || location.length === 0) &&  // location пуст или не выбран
+            (!date || !date.period) &&               // период не указан
+            (!category || category.length === 0); 
+        if (noFiltersApplied) {
+            // Если ни один фильтр не указан, возвращаем все события
+            onFilterApply(originalEvents);
+            return;
+        }
 
         const today = new Date();
         const tomorrow = new Date(today);
@@ -37,7 +48,7 @@ const EventFilters: React.FC<EventFiltersProps> = ({ events, onFilterApply, orig
 
             const locationMatch = !location || location.includes(event.location.city);
 
-            const dateMatch = !date || date.period.some((period: string) => {
+            const dateMatch = !date?.period || date.period.some((period: string) => {
                 if (period === 'today') {
                     return (
                         (date.type === 'starts' && eventStartDate.toDateString() === today.toDateString()) ||
@@ -87,9 +98,6 @@ const EventFilters: React.FC<EventFiltersProps> = ({ events, onFilterApply, orig
         <Form
             form={form}
             layout="vertical"
-            initialValues={{
-                date: { type: 'starts' }
-            }}
             onFinish={applyFilters}
         >
             <Form.Item label="Место проведения" name="location">
@@ -97,7 +105,7 @@ const EventFilters: React.FC<EventFiltersProps> = ({ events, onFilterApply, orig
             </Form.Item>
             <Form.Item label="Дата">
                 <Form.Item name={['date', 'type']} noStyle>
-                    <Select defaultValue="starts" style={{ marginTop: '10px' }}> 
+                    <Select style={{ marginTop: '10px' }} placeholder={"Начинается/Заканчивается"}> 
                         <Option value="starts">Начинается</Option>
                         <Option value="ends">Заканчивается</Option>
                         <Option value="ongoing">Проходит</Option>

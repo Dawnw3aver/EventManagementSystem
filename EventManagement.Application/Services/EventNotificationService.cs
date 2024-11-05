@@ -12,7 +12,7 @@ namespace EventManagement.Application.Services
     public class EventNotificationService : BackgroundService
     {
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        private readonly Dictionary<Guid, DateTime> _lastNotificationTimes = [];
+        private readonly Dictionary<Guid, DateTime> _sentNotifications = [];
 
         public EventNotificationService(IServiceScopeFactory serviceScopeFactory)
         {
@@ -49,6 +49,8 @@ namespace EventManagement.Application.Services
 
             foreach (var eventInfo in events)
             {
+                if (_sentNotifications.ContainsKey(eventInfo.Id))
+                    continue;
                 var participantIds = eventInfo.RegisteredParticipantIds.Select(id => id.ToString()).ToList();
                 var participants = await userManager.Users
                     .Where(u => participantIds.Contains(u.Id))
@@ -59,9 +61,8 @@ namespace EventManagement.Application.Services
 
                 tasks.AddRange(participants
                     .Select(user => emailService.SendEmailAsync(user.Email, title, message)));
-                _lastNotificationTimes.Add(eventInfo.Id, DateTime.Now);
+                _sentNotifications.Add(eventInfo.Id, DateTime.Now);
             }
-
             await Task.WhenAll(tasks);
         }
 
@@ -78,7 +79,7 @@ namespace EventManagement.Application.Services
                         { "eventDate", $"{eventInfo.StartDate} - {eventInfo.EndDate}" },
                         { "eventLocation", $"{eventInfo.Location.Address}" },
                         { "eventDescription", $"{eventInfo.Description}" },
-                        { "eventLink", "http://example.com/event/12345" },
+                        { "eventLink", $"http://localhost:3000/event?eventId={eventInfo.Id}" },
                         { "unsubscribeLink", "http://example.com/unsubscribe" }
                     };
                     return EmailTemplateHelper.GetEmailTemplate("StartSoonTemplate.html", placeholders);
@@ -111,14 +112,14 @@ namespace EventManagement.Application.Services
 
         private void ClearNotificationQueue() //todo очередь не должна пропадать после перезапуска
         {
-            var keysToRemove = _lastNotificationTimes
+            var keysToRemove = _sentNotifications
              .Where(kvp => (DateTime.Now - kvp.Value).TotalHours > 24)
              .Select(kvp => kvp.Key)
              .ToList();
 
             foreach (var key in keysToRemove)
             {
-                _lastNotificationTimes.Remove(key);
+                _sentNotifications.Remove(key);
             }
         }
     }

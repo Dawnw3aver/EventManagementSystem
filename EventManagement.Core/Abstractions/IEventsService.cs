@@ -9,6 +9,7 @@ namespace EventManagement.Core.Abstractions
         Task<Guid> CreateEvent(Event @event);
         Task<Guid> DeleteEvent(Guid eventId);
         Task<List<Event>> GetAllEvents();
+        Task<Result<Event>> GetEventById(Guid eventId);
         Task<Result> AddImages(Guid eventId, List<string> imageUrls);
         Task<Result> JoinEvent(Guid eventId, User user);
         Task<Result> LeaveEvent(Guid eventId, User user);

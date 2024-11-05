@@ -18,6 +18,10 @@ namespace EventManagement.Application.Services
         {
             return await _eventsRepository.Get();
         }
+        public async Task<Result<Event>> GetEventById(Guid eventId)
+        {
+            return await _eventsRepository.GetById(eventId);
+        }
 
         public async Task<Guid> CreateEvent(Event @event)
         {

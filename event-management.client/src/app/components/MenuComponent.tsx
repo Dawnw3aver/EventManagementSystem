@@ -12,16 +12,16 @@ const MenuComponent: React.FC = () => {
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
 
-  // Используем useEffect для получения данных из localStorage при монтировании компонента
   useEffect(() => {
     const storedUserName = sessionStorage.getItem('userName');
-    const storedUserRoles = JSON.parse(sessionStorage.getItem('userRoles') || '[]');
-  
-    if (!storedUserName) {
-      handleLogout(); // Выполняем выход, если данные отсутствуют
-    } else {
+    const storedUserRoles = sessionStorage.getItem('userRoles');
+
+    if (storedUserName) {
       setUserName(storedUserName);
-      setUserRoles(storedUserRoles);
+    }
+
+    if (storedUserRoles) {
+      setUserRoles(JSON.parse(storedUserRoles));
     }
   }, []);
 
@@ -47,20 +47,22 @@ const MenuComponent: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('https://localhost:7285/api/v1/logout', {}, {
-        withCredentials: true // Отправляем cookies с запросом
-      });
-      setUserName(null);
-      setUserRoles([]); // Сбрасываем роли
-
-      // Удаляем данные пользователя из localStorage
-      sessionStorage.removeItem('userName');
-      sessionStorage.removeItem('userRoles');
+        await axios.post('https://localhost:7285/api/v1/logout', {}, {
+            withCredentials: true // Отправляем cookies с запросом
+        });
+        // Сбрасываем данные пользователя
+        setUserName(null);
+        setUserRoles([]);
+        // Удаляем данные из sessionStorage
+        sessionStorage.removeItem('userName');
+        sessionStorage.removeItem('userRoles');
+        console.log('Выход выполнен успешно');
     } catch (error) {
-      console.error('Logout failed:', error);
-      // Обработка ошибки
+        console.error('Logout failed:', error);
+        // Обработка ошибки
     }
-  };
+};
+
 
   const handleRegister = async (values: any) => {
     try {

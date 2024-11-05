@@ -1,8 +1,8 @@
-"use client"; // Добавлено для использования хуков
+"use client";
 
 import { Button, Layout, Menu, Typography, Modal, Form, Input, Spin, DatePicker } from 'antd';
 import { useRouter } from 'next/navigation';
-import './Home.css'; // Подключаем CSS файл для стилей
+import './Home.css';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Paragraph } = Typography;

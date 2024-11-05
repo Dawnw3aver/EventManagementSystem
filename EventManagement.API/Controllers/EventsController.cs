@@ -65,6 +65,15 @@ namespace EventManagement.API.Controllers
             return Ok(response);
         }
 
+        [HttpGet("{eventId:guid}")]
+        public async Task<ActionResult<EventsResponse>> GetEvent(Guid eventId)
+        {
+            var result = await _eventsService.GetEventById(eventId);
+            if (result.IsFailure)
+                return BadRequest(result.Error);
+            return Ok(result.Value);
+        }
+
         [HttpPost]
         public async Task<ActionResult<Guid>> CreateEvent([FromBody]EventsRequest request)
         {
