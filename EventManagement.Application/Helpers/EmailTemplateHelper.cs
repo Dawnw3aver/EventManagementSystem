@@ -24,22 +24,24 @@ namespace EventManagement.Application.Helpers
 
         static string GetHtmlTemplate(string fileName)
         {
-            // This will get the current PROJECT directory
-            string projectDirectory = Directory.GetParent(Environment.CurrentDirectory).FullName;
-            string templateFolder = Path.Combine(projectDirectory, "EventManagement.Application", "EmailTemplates");
+            //// This will get the current PROJECT directory
+            //string projectDirectory = Directory.GetParent(Environment.CurrentDirectory).FullName;
+            ////string templateFolder = Path.Combine(projectDirectory, "EventManagement.Application", "EmailTemplates");
+            //string templateFolder = "/src/EventManagement.Application/EmailTemplates";
 
-            string filePath = Path.Combine(templateFolder, fileName);
+            //string filePath = Path.Combine(templateFolder, fileName);
 
-            if (!Directory.Exists(templateFolder))
-            {
-                throw new DirectoryNotFoundException($"Папка '{templateFolder}' не найдена.");
-            }
+            //if (!Directory.Exists(templateFolder))
+            //{
+            //    throw new DirectoryNotFoundException($"Папка '{templateFolder}' не найдена.");
+            //}
 
-            if (!File.Exists(filePath))
-            {
-                throw new FileNotFoundException($"Файл '{fileName}' не найден в папке '{templateFolder}'.");
-            }
-            return File.ReadAllText(filePath);
+            //if (!File.Exists(filePath))
+            //{
+            //    throw new FileNotFoundException($"Файл '{fileName}' не найден в папке '{templateFolder}'.");
+            //}
+            //return File.ReadAllText(filePath);
+            return "Test mail";
         }
     }
 }

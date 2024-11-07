@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Button, Form, Input, message, Typography } from 'antd';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
 const { Title } = Typography;
 
-const LoginPage: React.FC = () => {
+const LoginForm: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirectUrl = searchParams.get('redirect') || '/';
@@ -16,7 +16,7 @@ const LoginPage: React.FC = () => {
     const handleLogin = async (values: { email: string; password: string }) => {
         setLoading(true);
         try {
-            const response = await axios.post('https://localhost:7285/api/v1/login?useCookies=true&useSessionCookies=true', values, { withCredentials: true });
+            const response = await axios.post('/api/v1/login?useCookies=true&useSessionCookies=true', values, { withCredentials: true });
             message.success('Вы успешно вошли в систему!');
             sessionStorage.setItem('userName', response.data.userName);
             sessionStorage.setItem('userRoles', JSON.stringify(response.data.userRole));
@@ -71,5 +71,10 @@ const LoginPage: React.FC = () => {
     );
 };
 
-export default LoginPage;
+const LoginPage: React.FC = () => (
+    <Suspense fallback={<div>Загрузка...</div>}>
+        <LoginForm />
+    </Suspense>
+);
 
+export default LoginPage;

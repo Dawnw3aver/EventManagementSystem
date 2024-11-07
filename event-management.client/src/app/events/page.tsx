@@ -57,7 +57,7 @@ const EventsPage: React.FC = () => {
     const fetchEvents = async () => {
       try {
         const response = await axios.get(
-          "https://localhost:7285/api/v1/events",
+          "/api/v1/events",
           { withCredentials: true }
         );
         setEvents(response.data);
@@ -117,7 +117,7 @@ const EventsPage: React.FC = () => {
 
     try {
       const response = await axios.post(
-        "https://localhost:7285/api/v1/events",
+        "https://eventify.ddns.net:7285/api/v1/events",
         eventData,
         {
           withCredentials: true,
@@ -139,7 +139,7 @@ const EventsPage: React.FC = () => {
 
     try {
       await axios.post(
-        `https://localhost:7285/api/v1/events/upload-images?id=${id}`,
+        `https://eventify.ddns.net:7285/api/v1/events/upload-images?id=${id}`,
         formData,
         {
           headers: {
@@ -203,7 +203,7 @@ const EventsPage: React.FC = () => {
   const handleJoinEvent = async (eventId: string) => {
     try {
       const response = await axios.post(
-        `https://localhost:7285/api/v1/events/join?eventId=${eventId}`,
+        `https://eventify.ddns.net:7285/api/v1/events/join?eventId=${eventId}`,
         {},
         { withCredentials: true }
       );
@@ -234,7 +234,7 @@ const EventsPage: React.FC = () => {
   const handleLeaveEvent = async (eventId: string) => {
     try {
       const response = await axios.post(
-        `https://localhost:7285/api/v1/events/leave?eventId=${eventId}`,
+        `https://eventify.ddns.net:7285/api/v1/events/leave?eventId=${eventId}`,
         {},
         { withCredentials: true }
       );
@@ -366,7 +366,7 @@ const EventsPage: React.FC = () => {
                   cover={
                     <img
                       alt="event"
-                      src={"https://localhost:7285" + event.imageUrls[0]} // Изображение события
+                      src={"https://eventify.ddns.net:7285" + event.imageUrls[0]} // Изображение события
                       style={{ height: "200px", objectFit: "cover" }}
                     />
                   }
@@ -442,7 +442,7 @@ const EventsPage: React.FC = () => {
                   {selectedEvent.imageUrls.map((url: string, index: number) => (
                     <div key={index}>
                       <Image
-                        src={`https://localhost:7285${url}`}
+                        src={`https://eventify.ddns.net:7285${url}`}
                         alt={`Изображение ${index + 1}`}
                         style={{
                           borderRadius: "8px", // Закругленные края

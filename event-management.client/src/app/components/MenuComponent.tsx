@@ -27,7 +27,7 @@ const MenuComponent: React.FC = () => {
 
   const handleLogin = async (values: any) => {
     try {
-      const response = await axios.post('https://localhost:7285/api/v1/login?useCookies=true&useSessionCookies=true', values, {
+      const response = await axios.post('/api/v1/login?useCookies=true&useSessionCookies=true', values, {
         withCredentials: true // Отправляем cookies с запросом
       });
       console.log('Login successful:', response.data);
@@ -47,7 +47,7 @@ const MenuComponent: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-        await axios.post('https://localhost:7285/api/v1/logout', {}, {
+        await axios.post('/api/v1/logout', {}, {
             withCredentials: true // Отправляем cookies с запросом
         });
         // Сбрасываем данные пользователя
@@ -66,7 +66,7 @@ const MenuComponent: React.FC = () => {
 
   const handleRegister = async (values: any) => {
     try {
-      const response = await axios.post('https://localhost:7285/api/v1/register?useCookies=true&useSessionCookies=true', values, {
+      const response = await axios.post('/api/v1/register?useCookies=true&useSessionCookies=true', values, {
         withCredentials: true // Отправляем cookies с запросом
       });
       console.log('Register successful:', response.data);
