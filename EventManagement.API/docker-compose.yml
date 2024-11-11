@@ -24,10 +24,12 @@ services:
       - SMTP_PORT=587
       - SMTP_USER=MS_9Q0cf6@trial-v69oxl5n3jkl785k.mlsender.net
       - SMTP_PASS=FBpz6P6ArQELGBbR
+    volumes:
+      - ./uploads:/app/wwwroot/uploads:rw
     networks:
     - app_network
     ports:
-      - "7285:80"
+      - "8080:8080"
     depends_on:
       - postgres
 networks:

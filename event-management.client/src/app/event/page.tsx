@@ -1,5 +1,5 @@
 "use client";
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Layout, Typography, Card, Spin, Button, Carousel, List, message } from 'antd';
 import { CalendarOutlined, EnvironmentOutlined } from '@ant-design/icons';
@@ -29,7 +29,7 @@ const EventDetails: React.FC = () => {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchEventDetails();
   }, [eventId]);
 

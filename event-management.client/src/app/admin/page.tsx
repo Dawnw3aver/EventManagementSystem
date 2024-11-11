@@ -36,7 +36,7 @@ const UsersAndEventsPage: React.FC = () => {
     const fetchUsers = async () => {
         setLoadingUsers(true);
         try {
-            const response = await axios.get('https://localhost:7285/api/v1/users', { withCredentials: true });
+            const response = await axios.get('/api/v1/users', { withCredentials: true });
             setUsers(response.data);
         } catch (error) {
             console.error('Ошибка при загрузке пользователей:', error);
@@ -48,7 +48,7 @@ const UsersAndEventsPage: React.FC = () => {
     const fetchEvents = async () => {
         setLoadingEvents(true);
         try {
-            const response = await axios.get('https://localhost:7285/api/v1/events', { withCredentials: true });
+            const response = await axios.get('/api/v1/events', { withCredentials: true });
             setEvents(response.data);
         } catch (error) {
             console.error('Ошибка при загрузке событий:', error);
@@ -60,7 +60,7 @@ const UsersAndEventsPage: React.FC = () => {
     const fetchLogs = async (page: number) => {
         setLoadingLogs(true);
         try {
-            const response = await axios.get(`https://localhost:7285/api/v1/logs?page=${page}&pageSize=${pageSize}`, { withCredentials: true });
+            const response = await axios.get(`/api/v1/logs?page=${page}&pageSize=${pageSize}`, { withCredentials: true });
             setLogs(response.data);
             setTotalLogs(parseInt(response.headers['x-total-count'], 10) || 0);
         } catch (error) {
@@ -115,7 +115,7 @@ const UsersAndEventsPage: React.FC = () => {
                     location: location,
                     isActive: values.isActive || false,
                 };
-                await axios.put(`https://localhost:7285/api/v1/events/${currentEvent.id}`, formattedValues, { withCredentials: true });
+                await axios.put(`/api/v1/events/${currentEvent.id}`, formattedValues, { withCredentials: true });
                 message.success('Событие успешно обновлено');
                 fetchEvents();
             }
@@ -137,7 +137,7 @@ const UsersAndEventsPage: React.FC = () => {
                 location: location,
                 isActive: values.isActive || false,
             };
-            await axios.post('https://localhost:7285/api/v1/events', formattedValues, { withCredentials: true });
+            await axios.post('/api/v1/events', formattedValues, { withCredentials: true });
             message.success('Событие успешно добавлено');
             fetchEvents();
         } catch (error) {
@@ -151,7 +151,7 @@ const UsersAndEventsPage: React.FC = () => {
         const confirmDelete = window.confirm('Вы уверены, что хотите удалить это событие?');
         if (confirmDelete) {
             try {
-                await axios.delete(`https://localhost:7285/api/v1/events/${id}`, { withCredentials: true });
+                await axios.delete(`/api/v1/events/${id}`, { withCredentials: true });
                 fetchEvents();
                 message.success('Событие успешно удалено');
             } catch (error) {
@@ -173,7 +173,7 @@ const UsersAndEventsPage: React.FC = () => {
         const confirmDelete = window.confirm('Вы уверены, что хотите удалить этого пользователя?');
         if (confirmDelete) {
             try {
-                await axios.delete(`https://localhost:7285/api/v1/users/${userId}`, { withCredentials: true });
+                await axios.delete(`/api/v1/users/${userId}`, { withCredentials: true });
                 fetchUsers();
                 message.success('Пользователь успешно удален');
             } catch (error) {
@@ -188,7 +188,7 @@ const UsersAndEventsPage: React.FC = () => {
                 ...values,
                 birthDate: values.birthDate.toISOString(),
             };
-            await axios.post('https://localhost:7285/api/v1/users', formattedValues, { withCredentials: true });
+            await axios.post('/api/v1/users', formattedValues, { withCredentials: true });
             fetchUsers();
             message.success('Пользователь успешно добавлен');
         } catch (error) {
@@ -205,7 +205,7 @@ const UsersAndEventsPage: React.FC = () => {
                     ...values,
                     birthDate: values.birthDate.toISOString(),
                 };
-                await axios.put(`https://localhost:7285/api/v1/users/${currentUser.userId}`, formattedValues, { withCredentials: true });
+                await axios.put(`/api/v1/users/${currentUser.userId}`, formattedValues, { withCredentials: true });
                 fetchUsers();
                 message.success('Пользователь успешно обновлен');
             }

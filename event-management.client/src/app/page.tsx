@@ -22,7 +22,6 @@ const Home: React.FC = () => {
           <Button type="primary" onClick={() => router.push('/events')} style={{ marginTop: '20px' }}>Начать</Button>
         </div>
       </Content>
-      <Footer style={{ textAlign: 'center' }}>Event Management ©2024 Created by You</Footer>
     </Layout>
   );
 };

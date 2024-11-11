@@ -23,19 +23,20 @@ import {
   Image,
   Carousel,
   Select,
+  FloatButton,
 } from "antd";
 import {
   CalendarOutlined,
   EnvironmentOutlined,
+  FilterOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 import axios, { AxiosError } from "axios";
 import dynamic from "next/dynamic";
 import Paragraph from "antd/es/typography/Paragraph";
 import EventFilters from "../components/EventFilters";
-const MapComponent = dynamic(() => import("../components/MapComponent"), {
-  ssr: false,
-});
+import EventCreationForm from "../components/EventCreationComponent";
+import { Content } from "antd/es/layout/layout";
 
 const { Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -46,12 +47,18 @@ const EventsPage: React.FC = () => {
   const [originalEvents, setOriginalEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [collapsed, setCollapsed] = useState<boolean>(false);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [newEventId, setNewEventId] = useState<string | null>(null);
-  const [location, setLocation] = useState<string | null>(null); // Состояние для координат
-  const [address, setAddress] = useState<string | null>(null); // Состояние для адреса
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null); // Выбранное событие
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false); // Видимость модального окна
+  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+  const [isFilterModalVisible, setFilterModalVisible] = useState(false);
+  const [isSiderCollapsed, setSiderCollapsed] = useState(false);
+
+  const showCreateModal = () => setCreateModalVisible(true);
+  const hideCreateModal = () => setCreateModalVisible(false);
+
+  const showFilterModal = () => setFilterModalVisible(true);
+  const hideFilterModal = () => setFilterModalVisible(false);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -90,99 +97,6 @@ const EventsPage: React.FC = () => {
     setCollapsed(collapsed);
   };
 
-  const handleImageUpload = (file: File) => {
-    const isImage = file.type.startsWith("image/");
-    if (!isImage) {
-      message.error("Вы можете загружать только изображения!");
-      return false;
-    }
-    setImageFiles((prevFiles) => [...prevFiles, file]);
-    return true;
-  };
-
-  const handleImageUploadRemove = (file: UploadFile) => {
-    setImageFiles((prevFiles) => prevFiles.filter((f) => f.name !== file.name)); // Сравнение по имени файла
-  };
-
-  const handleCreateEvent = async (values: any) => {
-    const eventData = {
-      title: values.title,
-      description: values.description,
-      startDate: values.startDate?.toISOString(),
-      endDate: values.endDate?.toISOString(),
-      location: location, // Используем строку координат
-      address: address, // Используем адрес
-      isActive: values.isActive,
-    };
-
-    try {
-      const response = await axios.post(
-        "https://eventify.ddns.net:7285/api/v1/events",
-        eventData,
-        {
-          withCredentials: true,
-        }
-      );
-      setNewEventId(response.data); // Сохраняем ID нового события
-      handleUploadImages(response.data);
-      message.success("Событие успешно создано.");
-    } catch (error) {
-      console.error("Ошибка при создании события:", error);
-    }
-  };
-
-  const handleUploadImages = async (id: string) => {
-    const formData = new FormData();
-    imageFiles.forEach((file) => {
-      formData.append("files", file);
-    });
-
-    try {
-      await axios.post(
-        `https://eventify.ddns.net:7285/api/v1/events/upload-images?id=${id}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          withCredentials: true,
-        }
-      );
-      message.success("Изображения успешно загружены.");
-      setNewEventId(null); // Сбрасываем ID события
-      setImageFiles([]); // Очищаем загруженные изображения
-    } catch (error) {
-      console.error("Ошибка при загрузке изображений:", error);
-    }
-  };
-
-  // Функция обратного геокодирования для получения адреса
-  const fetchAddressFromCoords = async (
-    latitude: number,
-    longitude: number
-  ) => {
-    try {
-      const response = await axios.get(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ru`
-      );
-      if (response.data && response.data.display_name) {
-        setAddress(response.data.display_name); // Устанавливаем адрес на русском языке
-      } else {
-        setAddress("Адрес не найден");
-      }
-    } catch (error) {
-      console.error("Ошибка при получении адреса:", error);
-      setAddress("Ошибка получения адреса");
-    }
-  };
-
-  // Обрабатываем координаты как строку "latitude,longitude" и получаем адрес
-  const handleLocationChange = (coords: [number, number]) => {
-    const locationString = `${coords[0]},${coords[1]}`;
-    setLocation(locationString);
-    fetchAddressFromCoords(coords[0], coords[1]); // Получаем адрес по координатам
-  };
-
   const handleFilterApply = (filteredEvents: any) => {
     setEvents(filteredEvents);
   };
@@ -203,7 +117,7 @@ const EventsPage: React.FC = () => {
   const handleJoinEvent = async (eventId: string) => {
     try {
       const response = await axios.post(
-        `https://eventify.ddns.net:7285/api/v1/events/join?eventId=${eventId}`,
+        `/api/v1/events/join?eventId=${eventId}`,
         {},
         { withCredentials: true }
       );
@@ -234,7 +148,7 @@ const EventsPage: React.FC = () => {
   const handleLeaveEvent = async (eventId: string) => {
     try {
       const response = await axios.post(
-        `https://eventify.ddns.net:7285/api/v1/events/leave?eventId=${eventId}`,
+        `/api/v1/events/leave?eventId=${eventId}`,
         {},
         { withCredentials: true }
       );
@@ -263,89 +177,27 @@ const EventsPage: React.FC = () => {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Layout>
-        <Sider
-          collapsible
-          collapsed={collapsed}
-          onCollapse={handleCollapse}
-          width={300}
-          style={{ backgroundColor: "#f9f9f9" }}
-        >
-          {!collapsed && (
-            <>
-              <div style={{ marginLeft: "20px", paddingRight: "20px" }}>
-                <Title level={4} style={{ marginTop: "20px" }}>
-                  Фильтры
-                </Title>
-                <EventFilters
-                  events={originalEvents}
-                  onFilterApply={handleFilterApply}
-                  originalEvents={originalEvents}
-                />
-                <Title level={4} style={{ marginTop: "20px" }}>
-                  Создание события
-                </Title>
-                <Form layout="vertical" onFinish={handleCreateEvent}>
-                  <Form.Item label="Название события" name="title">
-                    <Input placeholder="Введите название" />
-                  </Form.Item>
-
-                  <Form.Item label="Описание события" name="description">
-                    <Input.TextArea placeholder="Введите описание" />
-                  </Form.Item>
-
-                  <Form.Item label="Место проведения" name="location">
-                    <MapComponent
-                      center={[55.7558, 37.6176]}
-                      zoom={13}
-                      onLocationChange={handleLocationChange}
-                    />
-                    {address && <p>Адрес: {address}</p>}
-                  </Form.Item>
-
-                  <Form.Item label="Дата начала" name="startDate">
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
-
-                  <Form.Item label="Дата окончания" name="endDate">
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
-
-                  <Form.Item
-                    label="Активно"
-                    name="isActive"
-                    valuePropName="checked"
-                  >
-                    <Switch />
-                  </Form.Item>
-
-                  <Form.Item label="Изображения">
-                    <Upload
-                      beforeUpload={handleImageUpload}
-                      onRemove={handleImageUploadRemove}
-                      multiple
-                      showUploadList={true}
-                    >
-                      <Button icon={<PlusOutlined />}>
-                        Загрузить изображения
-                      </Button>
-                    </Upload>
-                  </Form.Item>
-
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    style={{ width: "100%" }}
-                    htmlType="submit"
-                  >
-                    Создать событие
-                  </Button>
-                </Form>
-              </div>
-            </>
-          )}
-        </Sider>
-
-        <Layout style={{ padding: "20px", backgroundColor: "#fff" }}>
+      <Sider
+        width={300}
+        breakpoint="lg"
+        collapsedWidth="0"
+        style={{ backgroundColor: "#f9f9f9" }}
+        trigger={null}
+        onCollapse={(collapsed) => setSiderCollapsed(collapsed)}
+      >
+        <div style={{ marginLeft: "20px", paddingRight: "20px" }}>
+          <Title level={4} style={{ marginTop: "20px" }}>
+            Фильтры
+          </Title>
+          <EventFilters
+            events={originalEvents}
+            onFilterApply={handleFilterApply}
+            originalEvents={originalEvents}
+          />
+        </div>
+      </Sider>
+      <Layout style={{ padding: "20px", backgroundColor: "#fff" }}>
+        <Content>
           <Row style={{ marginBottom: "20px" }}>
             <Col span={24}>
               <Search
@@ -366,41 +218,26 @@ const EventsPage: React.FC = () => {
                   cover={
                     <img
                       alt="event"
-                      src={"https://eventify.ddns.net:7285" + event.imageUrls[0]} // Изображение события
+                      src={event.imageUrls[0]}
                       style={{ height: "200px", objectFit: "cover" }}
                     />
                   }
                 >
                   <Card.Meta
-                    title={
-                      <span style={{ fontWeight: "bold" }}>{event.title}</span>
-                    }
+                    title={<span style={{ fontWeight: "bold" }}>{event.title}</span>}
                     description={
                       <>
                         <p>
-                          <CalendarOutlined />{" "}
-                          {new Date(event.startDate).toLocaleDateString()} -{" "}
-                          {new Date(event.endDate).toLocaleDateString()}
+                          <CalendarOutlined /> {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}
                         </p>
                         <p>
                           <EnvironmentOutlined /> {event.location.city}
-                        </p>{" "}
-                        {/* Адрес или координаты */}
+                        </p>
                       </>
                     }
                   />
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      marginTop: "15px",
-                    }}
-                  >
-                    <Button
-                      type="primary"
-                      style={{ width: "100%" }}
-                      onClick={() => showEventDetails(event)}
-                    >
+                  <div style={{ display: "flex", justifyContent: "center", marginTop: "15px" }}>
+                    <Button type="primary" style={{ width: "100%" }} onClick={() => showEventDetails(event)}>
                       Подробнее
                     </Button>
                   </div>
@@ -408,8 +245,54 @@ const EventsPage: React.FC = () => {
               </Col>
             ))}
           </Row>
-        </Layout>
+        </Content>
       </Layout>
+
+      <FloatButton
+        icon={<PlusOutlined />}
+        type="primary"
+        onClick={showCreateModal}
+        style={{ right: 24, bottom: 24 }}
+      />
+
+      {isSiderCollapsed && (
+        <FloatButton
+          icon={<FilterOutlined />}
+          type="default"
+          onClick={showFilterModal}
+          style={{ left: 24, bottom: 24 }}
+        />
+      )}
+
+      <Modal
+        title="Создание события"
+        open={isCreateModalVisible}
+        onCancel={hideCreateModal}
+        footer={null}
+      >
+        <EventCreationForm onEventCreated={(newEventId) => {
+          setNewEventId(newEventId);
+          hideCreateModal();
+        }} />
+      </Modal>
+
+      {/* Модальное окно для фильтров (на мобильных устройствах) */}
+      <Modal
+        title="Фильтры событий"
+        visible={isFilterModalVisible}
+        onCancel={hideFilterModal}
+        footer={null}
+      >
+        <EventFilters
+          events={originalEvents}
+          onFilterApply={(filters) => {
+            handleFilterApply(filters);
+            hideFilterModal();
+          }}
+          originalEvents={originalEvents}
+        />
+      </Modal>
+    </Layout>
       <Modal
         title={selectedEvent?.title}
         open={isModalVisible}
@@ -442,28 +325,28 @@ const EventsPage: React.FC = () => {
                   {selectedEvent.imageUrls.map((url: string, index: number) => (
                     <div key={index}>
                       <Image
-                        src={`https://eventify.ddns.net:7285${url}`}
+                        src={`${url}`}
                         alt={`Изображение ${index + 1}`}
                         style={{
-                          borderRadius: "8px", // Закругленные края
+                          borderRadius: "8px",
                           objectFit: "cover",
-                          width: "100%", // Ширина изображений по размеру карусели
-                          height: "400px", // Фиксированная высота изображений
+                          width: "100%",
+                          height: "400px",
                         }}
-                        preview={false} // Отключение превью
+                        preview={false}
                       />
                     </div>
                   ))}
                 </Carousel>
               </div>
             ) : (
-              <Paragraph>Изображения отсутствуют</Paragraph> // Альтернативный текст, если изображений нет
+              <Paragraph>Изображения отсутствуют</Paragraph>
             )}
             <Card
               style={{
-                backgroundColor: "#f9f9f9", // Цвет фона контейнера
-                borderRadius: "8px", // Закруглённые края
-                marginBottom: "20px", // Отступ снизу
+                backgroundColor: "#f9f9f9",
+                borderRadius: "8px",
+                marginBottom: "20px",
               }}
             >
               <p>
@@ -485,9 +368,9 @@ const EventsPage: React.FC = () => {
             </Card>
             <Card
               style={{
-                backgroundColor: "#f9f9f9", // Цвет фона контейнера
-                borderRadius: "8px", // Закруглённые края
-                marginBottom: "20px", // Отступ снизу
+                backgroundColor: "#f9f9f9",
+                borderRadius: "8px",
+                marginBottom: "20px",
               }}
             >
               <Paragraph>{selectedEvent.description}</Paragraph>
@@ -495,9 +378,9 @@ const EventsPage: React.FC = () => {
 
             <Card
               style={{
-                backgroundColor: "#f9f9f9", // Цвет фона контейнера
-                borderRadius: "8px", // Закруглённые края
-                marginBottom: "20px", // Отступ снизу
+                backgroundColor: "#f9f9f9", 
+                borderRadius: "8px", 
+                marginBottom: "20px",
               }}
             >
               <Title level={5}>Адрес</Title>
@@ -515,9 +398,6 @@ const EventsPage: React.FC = () => {
           </div>
         )}
       </Modal>
-      <Footer style={{ textAlign: "center" }}>
-        Event Management ©2024 Created by You
-      </Footer>
     </Layout>
   );
 };

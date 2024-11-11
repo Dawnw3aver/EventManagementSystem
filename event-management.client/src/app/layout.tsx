@@ -6,6 +6,7 @@ import locale from 'antd/locale/ru_RU';
 import moment from 'moment';
 import 'moment/locale/ru';
 import { ConfigProvider } from "antd";
+import { Footer } from "antd/es/layout/layout";
 moment.locale("ru");
 
 const geistSans = localFont({
@@ -36,6 +37,9 @@ export default function RootLayout({
         <ConfigProvider locale={locale}>
           {children}
         </ConfigProvider>
+        <Footer style={{ textAlign: "center" }}>
+          Event Management ©2024 Created by Dawnweave
+        </Footer>
       </body>
     </html>
   );

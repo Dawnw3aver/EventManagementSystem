@@ -57,6 +57,8 @@ const MenuComponent: React.FC = () => {
         sessionStorage.removeItem('userName');
         sessionStorage.removeItem('userRoles');
         console.log('Выход выполнен успешно');
+        router.push('/');
+        console.log('router.push()');
     } catch (error) {
         console.error('Logout failed:', error);
         // Обработка ошибки

@@ -1,9 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-    console.log(request.cookies);
     const isLoggedIn = request.cookies.get('.AspNetCore.Identity.Application')?.value;
-    console.log("request.cookies ", isLoggedIn);
 
     if (!isLoggedIn && (request.nextUrl.pathname.startsWith('/events') || request.nextUrl.pathname.startsWith('/event'))) {
         const loginUrl = new URL('/login', request.url);

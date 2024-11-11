@@ -1,5 +1,5 @@
 // components/MapComponent.tsx
-
+"use client";
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Button } from 'antd';
@@ -85,6 +85,14 @@ const LocationMarker = ({ onLocationChange }: { onLocationChange?: (location: [n
     </>
   );
 };
+
+// useEffect(() => {
+//   const unwantedDiv = document.querySelector('.leaflet-control-attribution leaflet-control');
+//   if (unwantedDiv) {
+//     unwantedDiv.remove();
+//     console.log('unwantedDiv removed');
+//   }
+// }, []);
 
 const MapComponent: React.FC<MapComponentProps> = ({ center = [55.7558, 37.6176], zoom, onLocationChange }) => {
   return (
