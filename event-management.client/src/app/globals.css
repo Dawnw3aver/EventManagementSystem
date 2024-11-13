@@ -36,12 +36,12 @@ a {
 }
 
 .ant-carousel .slick-slide {
-  padding: 0; /* Убираем паддинги для слайдов */
+  padding: 0;
 }
 
 .site-layout-content {
-  max-width: 100%; /* Гарантируем, что контент не будет шире */
-  overflow: hidden; /* Убираем лишние пробелы */
+  max-width: 100%;
+  overflow: hidden;
 }
 
 
@@ -49,4 +49,11 @@ a {
   html {
     color-scheme: dark;
   }
+}
+
+@font-face {
+  font-family: 'Nunito';
+  src: url('./fonts/NunitoVF.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
 }

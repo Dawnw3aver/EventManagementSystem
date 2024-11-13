@@ -1,10 +1,11 @@
 "use client";
 
-import { Button, Layout, Menu, Typography, Modal, Form, Input, Spin, DatePicker } from 'antd';
+import { Button, Card, Col, Layout, Row, Typography } from 'antd';
 import { useRouter } from 'next/navigation';
+import { CheckCircleOutlined } from '@ant-design/icons';
 import './Home.css';
 
-const { Header, Content, Footer } = Layout;
+const { Content } = Layout;
 const { Title, Paragraph } = Typography;
 
 const Home: React.FC = () => {
@@ -12,14 +13,32 @@ const Home: React.FC = () => {
 
   return (
     <Layout className="layout">
-      <Content style={{ padding: '0 50px', backgroundImage: "url('/images/background.jpg')", backgroundSize: 'cover', height: '100vh' }}>
-        <div className="description-container" style={{ marginTop: '20px', textAlign: 'center', backgroundColor: 'rgba(255, 255, 255, 0.8)', padding: '20px', borderRadius: '10px' }}>
-          <Title level={1}>Добро пожаловать в систему управления событиями</Title>
-          <Paragraph>
-            Все в одном решении для создания, управления и участия в мероприятиях. 
-            Независимо от того, проводите ли вы небольшую встречу или крупную конференцию, мы вас поддержим!
-          </Paragraph>
-          <Button type="primary" onClick={() => router.push('/events')} style={{ marginTop: '20px' }}>Начать</Button>
+      <Content className="home-content">
+        <div className="hero-container">
+          <div className="text-section">
+            <Title level={1} className="hero-title">Лучший способ находить события</Title>
+            <div className="features-list">
+              <Paragraph>
+                <CheckCircleOutlined className="icon" /> Находи интересные события в твоем городе
+              </Paragraph>
+              <Paragraph>
+                <CheckCircleOutlined className="icon" /> Планируй и продвигай свои события
+              </Paragraph>
+              <Paragraph>
+                <CheckCircleOutlined className="icon" /> Привлекай участников
+              </Paragraph>
+              <Paragraph>
+                <CheckCircleOutlined className="icon" /> Отслеживай последние обновления
+              </Paragraph>
+            </div>
+            <Button type="primary" className="explore-button" onClick={() => router.push('/events')}>
+              Начать просмотр
+            </Button>
+            <Button type="link" className="demo-button">Демо</Button>
+          </div>
+          <div className="image-section">
+            <img src="images/tequila-sunrice.png" alt="Event Management" className="hero-image" />
+          </div>
         </div>
       </Content>
     </Layout>

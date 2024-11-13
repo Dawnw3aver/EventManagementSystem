@@ -37,8 +37,8 @@ export default function RootLayout({
         <ConfigProvider locale={locale}>
           {children}
         </ConfigProvider>
-        <Footer style={{ textAlign: "center" }}>
-          Event Management ©2024 Created by Dawnweave
+        <Footer style={{ textAlign: "center", backgroundColor: '#161851', color: '#e7f2ff' }}>
+          Eventify ©2024 Created by Dawnweave
         </Footer>
       </body>
     </html>

@@ -81,28 +81,41 @@ const MenuComponent: React.FC = () => {
 
   return (
     <>
-      <Menu theme="dark" mode="horizontal" style={{ justifyContent: 'flex-end' }}>
-        {userRoles.includes('Admin') && (
-          <Menu.Item key="1" onClick={() => router.push('/admin')}>Администрирование</Menu.Item>
-        )}
-        {userName ? (
-          <>
-            <Menu.Item key="2">{userName}</Menu.Item>
-            <Menu.Item key="3">
-              <Button type="link" onClick={handleLogout} style={{ color: 'white' }}>Выход</Button>
-            </Menu.Item>
-          </>
-        ) : (
-          <>
-            <Menu.Item key="4">
-              <Button type="link" onClick={() => setIsLoginModalVisible(true)} style={{ color: 'white' }}>Вход</Button>
-            </Menu.Item>
-            <Menu.Item key="5">
-              <Button type="link" onClick={() => setIsRegisterModalVisible(true)} style={{ color: 'white' }}>Регистрация</Button>
-            </Menu.Item>
-          </>
-        )}
-      </Menu>
+      <Menu theme="dark" mode="horizontal" style={{ display: 'flex', justifyContent: 'space-between', lineHeight: 0 }}>
+      <Menu.Item key="logo" onClick={() => router.push('/')} style={{ marginRight: 'auto', padding: '10px' }}>
+      <img src="images/logo.svg" alt="Logo" style={{ height: '40px' }} />
+      <p style={{
+          fontSize: '24px',
+          fontFamily: 'Nunito, sans-serif',
+          fontWeight: '700',
+          margin: 0,
+          color: 'white'
+        }}>
+          Eventify
+        </p>
+      </Menu.Item>
+
+      {userRoles.includes('Admin') && (
+        <Menu.Item key="1" onClick={() => router.push('/admin')} style={{ color: 'white', paddingTop: '30px'}}>Администрирование</Menu.Item>
+      )}
+      {userName ? (
+        <>
+          <Menu.Item key="2">{userName}</Menu.Item>
+          <Menu.Item key="3">
+            <Button type="link" onClick={handleLogout} style={{ color: 'white', paddingTop: '30px'}}>Выход</Button>
+          </Menu.Item>
+        </>
+      ) : (
+        <>
+          <Menu.Item key="4">
+            <Button type="link" onClick={() => setIsLoginModalVisible(true)} style={{ color: 'white', paddingTop: '30px'}}>Вход</Button>
+          </Menu.Item>
+          <Menu.Item key="5">
+            <Button type="link" onClick={() => setIsRegisterModalVisible(true)} style={{ color: 'white', paddingTop: '30px' }}>Регистрация</Button>
+          </Menu.Item>
+        </>
+      )}
+    </Menu>
 
       {/* Модальное окно для входа */}
       <Modal
