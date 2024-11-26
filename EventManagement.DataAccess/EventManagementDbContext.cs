@@ -14,5 +14,6 @@ namespace EventManagement.DataAccess
 
         public DbSet<EventEntity> Events { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
+        public DbSet<EmailTemplateEntity> EmailTemplates { get; set; }
     }
 }

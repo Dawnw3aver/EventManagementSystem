@@ -23,6 +23,7 @@ using EventManagement.Application.Helpers;
 using EventManagement.Core.Abstractions;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Authentication;
+using EventManagement.Core.Enums;
 
 namespace EventManagement.API.Controllers;
 
@@ -85,6 +86,7 @@ public static class AuthController
 
             await userStore.SetUserNameAsync(user, email, CancellationToken.None);
             await emailStore.SetEmailAsync(user, email, CancellationToken.None);
+            await userManager.AddToRoleAsync(user, UserRoles.User);
 
             var result = await userManager.CreateAsync(user, registration.Password);
 

@@ -33,13 +33,14 @@ namespace EventManagement.Application.Services
         private async Task NotifyEvents(
             Func<Event, bool> eventFilter,
             Func<Event, string> createTitle,
-            Func<Event, string> createMessage,
+            Func<Event, Task<string>> createMessage,
             CancellationToken stoppingToken)
         {
             using var scope = _serviceScopeFactory.CreateScope();
             var eventsRepository = scope.ServiceProvider.GetRequiredService<IEventsRepository>();
             var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
 
             var events = (await eventsRepository.Get())
                 .Where(eventFilter)
@@ -57,7 +58,7 @@ namespace EventManagement.Application.Services
                     .ToListAsync(stoppingToken);
 
                 var title = createTitle(eventInfo);
-                var message = createMessage(eventInfo);
+                var message = await createMessage(eventInfo);
 
                 tasks.AddRange(participants
                     .Select(user => emailService.SendEmailAsync(user.Email, title, message)));
@@ -68,10 +69,11 @@ namespace EventManagement.Application.Services
 
         private async Task NotifyUpcomingEvents(CancellationToken stoppingToken)
         {
+            
             await NotifyEvents(
                 e => (e.StartDate - DateTime.Now).TotalHours <= 24 && e.EndDate > DateTime.Now,
                 eventInfo => $"Скоро начнется событие {eventInfo.Title}",
-                eventInfo => 
+                async eventInfo =>
                 {
                     var placeholders = new Dictionary<string, string> 
                     {
@@ -79,10 +81,12 @@ namespace EventManagement.Application.Services
                         { "eventDate", $"{eventInfo.StartDate} - {eventInfo.EndDate}" },
                         { "eventLocation", $"{eventInfo.Location.Address}" },
                         { "eventDescription", $"{eventInfo.Description}" },
-                        { "eventLink", $"http://localhost:3000/event?eventId={eventInfo.Id}" },
+                        { "eventLink", $"http://eventify.ddns.net/event?eventId={eventInfo.Id}" },
                         { "unsubscribeLink", "http://example.com/unsubscribe" }
                     };
-                    return EmailTemplateHelper.GetEmailTemplate("StartSoonTemplate.html", placeholders);
+                    var emailService = _serviceScopeFactory.CreateScope()
+                        .ServiceProvider.GetRequiredService<IEmailService>();
+                    return await emailService.CreateEmailMessage("StartSoonTemplate", placeholders);
                 },
                 stoppingToken
             );
@@ -93,7 +97,7 @@ namespace EventManagement.Application.Services
             await NotifyEvents(
                 e => (DateTime.Now - e.UpdatedAt).TotalMinutes <= 30,
                 eventInfo => $"Обновлено событие {eventInfo.Title}",
-                eventInfo =>
+                async eventInfo =>
                 {
                     var placeholders = new Dictionary<string, string>
                     {
@@ -104,7 +108,9 @@ namespace EventManagement.Application.Services
                         { "eventLink", "http://example.com/event/12345" },
                         { "unsubscribeLink", "http://example.com/unsubscribe" }
                     };
-                    return EmailTemplateHelper.GetEmailTemplate("StartSoonTemplate.html", placeholders);
+                    var emailService = _serviceScopeFactory.CreateScope()
+                        .ServiceProvider.GetRequiredService<IEmailService>();
+                    return await emailService.CreateEmailMessage("StartSoonTemplate", placeholders);
                 },
                 stoppingToken
             );

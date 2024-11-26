@@ -11,6 +11,10 @@ module.exports = {
           source: '/uploads/:path*',
           destination: 'https://eventify.ddns.net/uploads/:path*',
         },
+        {
+          source: '/users/:path*',
+          destination: 'https://eventify.ddns.net/users/:path*',
+        },
       ]
     },
   };

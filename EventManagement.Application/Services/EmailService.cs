@@ -1,11 +1,17 @@
 ﻿using EventManagement.Core.Abstractions;
 using MimeKit;
 using MailKit.Net.Smtp;
+using System.Text;
 
 namespace EventManagement.Application.Services
 {
     public class EmailService : IEmailService
     {
+        private readonly IEmailTemplatesRepository _templatesRepository;
+        public EmailService(IEmailTemplatesRepository emailTemplatesRepository)
+        {
+            _templatesRepository = emailTemplatesRepository;
+        }
         public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
             try
@@ -30,6 +36,19 @@ namespace EventManagement.Application.Services
                 Console.WriteLine(ex.Message + '\n' + ex.StackTrace);
                 Console.WriteLine($"email: {email}, subjest: {subject}, message: {htmlMessage}");
             }
+        }
+
+        public async Task<string> CreateEmailMessage(string templateName, Dictionary<string, string> placeholders)
+        {
+            var template = await _templatesRepository.GetByName(templateName);
+            var sb = new StringBuilder(template.HtmlText);
+
+            foreach (var placeholder in placeholders)
+            {
+                sb.Replace($"{{{{{placeholder.Key}}}}}", placeholder.Value);
+            }
+
+            return sb.ToString();
         }
     }
 }
