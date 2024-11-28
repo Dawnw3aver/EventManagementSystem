@@ -14,5 +14,27 @@ services:
     ports:
       - "5432:5432"
 
+  eventmanagementapi:
+    image: dawnweave/eventmanagementapi
+    container_name: eventmanagementapi
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__EventManagementDbContext=User ID=root;Password=Bm8*T3C&ZKvX;Host=eventify.ddns.net;Port=5432;Database=eventsdb;
+      - SMTP_HOST=smtp.mailersend.net
+      - SMTP_PORT=587
+      - SMTP_USER=MS_9Q0cf6@trial-v69oxl5n3jkl785k.mlsender.net
+      - SMTP_PASS=FBpz6P6ArQELGBbR
+    volumes:
+      - ./uploads:/app/wwwroot/uploads:rw
+    networks:
+    - app_network
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+networks:
+   app_network:
+    driver: bridge
+
 volumes:
   postgres-data:

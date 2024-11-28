@@ -21,26 +21,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using EventManagement.Application.Helpers;
 using EventManagement.Core.Abstractions;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Authentication;
+using EventManagement.Core.Enums;
 
 namespace EventManagement.API.Controllers;
 
-/// <summary>
-/// Provides extension methods for <see cref="IEndpointRouteBuilder"/> to add identity endpoints.
-/// </summary>
 public static class AuthController
 {
-    // Validate the email address using DataAnnotations like the UserValidator does when RequireUniqueEmail = true.
     private static readonly EmailAddressAttribute _emailAddressAttribute = new();
-
-    /// <summary>
-    /// Add endpoints for registering, logging in, and logging out using ASP.NET Core Identity.
-    /// </summary>
-    /// <typeparam name="TUser">The type describing the user. This should match the generic parameter in <see cref="UserManager{TUser}"/>.</typeparam>
-    /// <param name="endpoints">
-    /// The <see cref="IEndpointRouteBuilder"/> to add the identity endpoints to.
-    /// Call <see cref="EndpointRouteBuilderExtensions.MapGroup(IEndpointRouteBuilder, string)"/> to add a prefix to all the endpoints.
-    /// </param>
-    /// <returns>An <see cref="IEndpointConventionBuilder"/> to further customize the added endpoints.</returns>
     public static IEndpointConventionBuilder MapCustomIdentityApi<TUser>(this IEndpointRouteBuilder endpoints)
         where TUser : class, new()
     {
@@ -48,7 +37,7 @@ public static class AuthController
 
         var timeProvider = endpoints.ServiceProvider.GetRequiredService<TimeProvider>();
         var bearerTokenOptions = endpoints.ServiceProvider.GetRequiredService<IOptionsMonitor<BearerTokenOptions>>();
-        var emailSender = new EmailSender<TUser>();
+        var emailSender = endpoints.ServiceProvider.GetRequiredService<IEmailSender<TUser>>();
         var linkGenerator = endpoints.ServiceProvider.GetRequiredService<LinkGenerator>();
 
         // We'll figure out a unique endpoint name based on the final route pattern during endpoint generation.
@@ -60,6 +49,16 @@ public static class AuthController
         // https://github.com/dotnet/aspnetcore/issues/47338
         routeGroup.MapPost("/register", async Task<Results<Ok, ValidationProblem>> ([FromBody] CustomRegisterRequest registration, HttpContext context, [FromServices] IServiceProvider sp) =>
         {
+            var results = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(registration, new ValidationContext(registration), results, true))
+            {
+                var errors = results
+                .GroupBy(e => e.MemberNames.FirstOrDefault() ?? string.Empty)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+
+                return TypedResults.ValidationProblem(errors);
+            }
+
             var userManager = sp.GetRequiredService<UserManager<TUser>>();
             var loggingService = sp.GetRequiredService<ILoggingService>();
 
@@ -77,20 +76,17 @@ public static class AuthController
                 return CreateValidationProblem(IdentityResult.Failed(userManager.ErrorDescriber.InvalidEmail(email)));
             }
             var user = new TUser();
-            string userId = string.Empty;
-            string userName = string.Empty;
             if (user is User myUser)
             {
                 myUser.FirstName = registration.FirstName;
                 myUser.MiddleName = registration.MiddleName;
                 myUser.LastName = registration.LastName;
                 myUser.BirthDate = registration.BirthDate;
-                userId = myUser.Id;
-                userName = myUser.UserName;
             }
 
             await userStore.SetUserNameAsync(user, email, CancellationToken.None);
             await emailStore.SetEmailAsync(user, email, CancellationToken.None);
+            await userManager.AddToRoleAsync(user, UserRoles.User);
 
             var result = await userManager.CreateAsync(user, registration.Password);
 
@@ -100,11 +96,12 @@ public static class AuthController
             }
 
             await SendConfirmationEmailAsync(user, userManager, context, email);
-            await loggingService.LogActionAsync(userId, "register", $"Зарегистрирован новый пользователь {userName}");
+            var u = user as User;
+            await loggingService.LogActionAsync(u.Id, "register", $"Зарегистрирован новый пользователь {u.UserName}");
             return TypedResults.Ok();
         });
 
-        routeGroup.MapPost("/login", async Task<Results<Ok<AccessTokenResponse>, EmptyHttpResult, ProblemHttpResult>> ([FromBody] LoginRequest login, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies, [FromServices] IServiceProvider sp) =>
+        routeGroup.MapPost("/login", async Task<IResult> ([FromBody] LoginRequest login, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies, [FromServices] IServiceProvider sp) =>
         {
             var signInManager = sp.GetRequiredService<SignInManager<TUser>>();
             var loggingService = sp.GetRequiredService<ILoggingService>();
@@ -132,11 +129,41 @@ public static class AuthController
                 return TypedResults.Problem(result.ToString(), statusCode: StatusCodes.Status401Unauthorized);
             }
 
-            var user = await userManager.FindByEmailAsync(login.Email) as User;
-            await loggingService.LogActionAsync(user.Id, "login", $"Пользователь {user.UserName} выполнил вход в систему");
+            var user = await userManager.FindByEmailAsync(login.Email);
+            var user1 = user as User;
+            await loggingService.LogActionAsync(user1.Id, "login", $"Пользователь {user1.UserName} выполнил вход в систему");
             // The signInManager already produced the needed response in the form of a cookie or bearer token.
-            return TypedResults.Empty;
+            return TypedResults.Ok(new
+            {
+                userName = user1.UserName,
+                userRole = await userManager.GetRolesAsync(user) // Получаем первую роль пользователя
+            });
         });
+
+        routeGroup.MapPost("/logout", async Task<IResult> (bool? useCookies, [FromServices] IServiceProvider sp) =>
+        {
+            var signInManager = sp.GetRequiredService<SignInManager<TUser>>();
+            var userManager = sp.GetRequiredService<UserManager<TUser>>();
+            var loggingService = sp.GetRequiredService<ILoggingService>();
+
+            // Получаем текущего пользователя
+            var user = sp.GetService<IHttpContextAccessor>()?.HttpContext?.User;
+            if (user == null || !user.Identity.IsAuthenticated)
+            {
+                return TypedResults.Unauthorized(); // Если пользователь не аутентифицирован
+            }
+
+            // Выход пользователя
+            await signInManager.SignOutAsync();
+
+            // Логируем действие выхода
+            var userId = userManager.GetUserId(user);
+            var userInstance = await userManager.FindByIdAsync(userId) as User;
+            await loggingService.LogActionAsync(userId, "logout", $"Пользователь {userInstance.UserName} вышел из системы");
+
+            return TypedResults.Ok("Вы успешно вышли из системы");
+        });
+
 
         routeGroup.MapPost("/refresh", async Task<Results<Ok<AccessTokenResponse>, UnauthorizedHttpResult, SignInHttpResult, ChallengeHttpResult>> ([FromBody] RefreshRequest refreshRequest, [FromServices] IServiceProvider sp) =>
         {

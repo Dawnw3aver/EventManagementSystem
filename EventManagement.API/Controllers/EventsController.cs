@@ -1,7 +1,9 @@
 ﻿using EventManagement.API.Contracts;
 using EventManagement.Core.Abstractions;
+using EventManagement.Core.Enums;
 using EventManagement.Core.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -16,25 +18,69 @@ namespace EventManagement.API.Controllers
     {
         private readonly IEventsService _eventsService;
         private readonly ILoggingService _loggingService;
-        
-        public EventsController(IEventsService eventsService, ILoggingService loggingService)
+        private readonly ILocationService _locationService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly UserManager<User> _userManager;
+
+        public EventsController(IEventsService eventsService, ILoggingService loggingService, ILocationService locationService, IServiceProvider serviceProvider)
         {
             _eventsService = eventsService;
             _loggingService = loggingService;
+            _locationService = locationService;
+            _serviceProvider = serviceProvider;
+            _userManager = _serviceProvider.GetRequiredService<UserManager<User>>();
         }
 
         [HttpGet]
         public async Task<ActionResult<List<EventsResponse>>> GetEvents()
         {
             var events = await _eventsService.GetAllEvents();
-            var response = events.Select(x => new EventsResponse(x.Id, x.Title, x.Description, x.StartDate, x.EndDate, x.Location, x.OrganizerId, x.IsActive, x.CreatedAt, x.UpdatedAt, x.ImageUrls));
+            var response = new List<EventsResponse>();
+
+            foreach (var eventEntity in events) //todo мб оптимизировать
+            {
+                var participants = new List<string>();
+                foreach (var participantId in eventEntity.RegisteredParticipantIds)
+                {
+                    var user = await _userManager.FindByIdAsync(participantId.ToString());
+                    participants.Add(user?.UserName ?? "Unknown");
+                }
+
+                response.Add(new EventsResponse(
+                    eventEntity.Id,
+                    eventEntity.Title,
+                    eventEntity.Description,
+                    eventEntity.StartDate,
+                    eventEntity.EndDate,
+                    eventEntity.Location,
+                    eventEntity.OrganizerId,
+                    participants,
+                    eventEntity.IsActive,
+                    eventEntity.CreatedAt,
+                    eventEntity.UpdatedAt,
+                    eventEntity.ImageUrls
+                ));
+            }
+
             return Ok(response);
+        }
+
+        [HttpGet("{eventId:guid}")]
+        public async Task<ActionResult<EventsResponse>> GetEvent(Guid eventId)
+        {
+            var result = await _eventsService.GetEventById(eventId);
+            if (result.IsFailure)
+                return BadRequest(result.Error);
+            return Ok(result.Value);
         }
 
         [HttpPost]
         public async Task<ActionResult<Guid>> CreateEvent([FromBody]EventsRequest request)
         {
             var authorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var loc = await _locationService.CreateLocation(request.location);
+            if (loc.IsFailure)
+                return BadRequest(loc.Error);
 
             var (@event, error) = Event.Create(
                 Guid.NewGuid(),
@@ -42,7 +88,7 @@ namespace EventManagement.API.Controllers
                 request.description,
                 request.startDate,
                 request.endDate,
-                request.location,
+                loc.Value,
                 new Guid(authorId),
                 new List<Guid>(),
                 new List<string>(),
@@ -65,7 +111,16 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<Guid>> UpdateEvent(Guid id, [FromBody] EventsRequest request)
         {
             var authorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, request.location, new Guid(authorId), request.isActive);
+            var user = await _userManager.FindByIdAsync(authorId);
+            bool isAdmin = await _userManager.IsInRoleAsync(user, UserRoles.Admin);
+            bool isAuthor = await _eventsService.IsAuthor(id, user);
+            if (!isAdmin && !isAuthor)
+                return Forbid();
+
+            var loc = await _locationService.CreateLocation(request.location);
+            if (loc.IsFailure)
+                return BadRequest(loc.Error);
+            var eventId = await _eventsService.UpdateEvent(id, request.title, request.description, request.startDate, request.endDate, loc.Value, request.isActive);
             await _loggingService.LogActionAsync(id.ToString(), "UpdateEvent", $"Обновлено событие {request.title}");
             return Ok(eventId);
         }
@@ -85,7 +140,7 @@ namespace EventManagement.API.Controllers
             return Ok(eventId);
         }
 
-        [HttpPost("/upload-images")]
+        [HttpPost("upload-images")]
         public async Task<IActionResult> UploadImages(Guid id, IFormFileCollection files) //todo проверить, что грузят именно изображения, ограничить количество
         {
             if (!files.Any())
@@ -120,6 +175,32 @@ namespace EventManagement.API.Controllers
             await _eventsService.AddImages(id, imageUrls);
 
             return Ok(new { ImageUrls = imageUrls });
+        }
+
+        [HttpPost("join")]
+        public async Task<ActionResult> JoinEvent([FromQuery]Guid eventId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            User user = await _userManager.FindByIdAsync(userId);
+
+            var result = await _eventsService.JoinEvent(eventId, user);
+            if (result.IsFailure)
+                return BadRequest(result.Error);
+
+            return Ok();
+        }
+
+        [HttpPost("leave")]
+        public async Task<ActionResult> LeaveEvent([FromQuery] Guid eventId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            User user = await _userManager.FindByIdAsync(userId);
+
+            var result = await _eventsService.LeaveEvent(eventId, user);
+            if (result.IsFailure)
+                return BadRequest(result.Error);
+
+            return Ok();
         }
     }
 }

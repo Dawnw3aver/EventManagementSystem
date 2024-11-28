@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity.UI.Services;
-using System.Net.Mail;
-using System.Net;
-using Microsoft.AspNetCore.Identity;
-using EventManagement.Core.Models;
+﻿using Microsoft.AspNetCore.Identity;
+using MailKit.Net.Smtp;
+using MimeKit;
 
 namespace EventManagement.Application.Helpers
 {
@@ -17,28 +15,30 @@ namespace EventManagement.Application.Helpers
         public Task SendPasswordResetCodeAsync(TUser user, string email, string resetCode) =>
            SendEmailAsync(email, "Reset your password", $"Please reset your password using the following code: {resetCode}");
 
-        public Task SendEmailAsync(string email, string subject, string htmlMessage)
+        public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
-            SmtpClient client = new SmtpClient
+            try
             {
-                Host = "localhost",
-                Port = 1025, // Порт MailHog
-                EnableSsl = false,
-                DeliveryMethod = SmtpDeliveryMethod.Network,
-                UseDefaultCredentials = true,
-            };
-
-            var mailMessage = new MailMessage
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress("Eventify Support", "MS_9Q0cf6@trial-v69oxl5n3jkl785k.mlsender.net"));
+                message.To.Add(new MailboxAddress("", email));
+                message.Subject = subject;
+                message.Body = new TextPart("html")
+                {
+                    Text = htmlMessage
+                };
+            
+                using var client = new SmtpClient();
+                await client.ConnectAsync("smtp.mailersend.net", 587, MailKit.Security.SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync("MS_9Q0cf6@trial-v69oxl5n3jkl785k.mlsender.net", "FBpz6P6ArQELGBbR");
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+            }
+            catch (Exception ex)
             {
-                From = new MailAddress("MS_9Q0cf6@trial-v69oxl5n3jkl785k.mlsender.net"),
-                Subject = subject,
-                Body = htmlMessage,
-                IsBodyHtml = true
-            };
-
-            mailMessage.To.Add(email);
-
-            return client.SendMailAsync(mailMessage);
+                Console.WriteLine(ex.Message + '\n' + ex.StackTrace);
+                Console.WriteLine($"email: {email}, subjest: {subject}, message: {htmlMessage}");
+            }
         }
     }
 }

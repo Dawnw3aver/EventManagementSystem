@@ -1,5 +1,7 @@
-﻿using EventManagement.Core.Abstractions;
+﻿using CSharpFunctionalExtensions;
+using EventManagement.Core.Abstractions;
 using EventManagement.Core.Models;
+using EventManagement.Core.ValueObjects;
 using EventManagement.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +24,15 @@ namespace EventManagement.DataAccess.Repositories
                 .ToList();
 
             return events;
+        }
+
+        public async Task<Result<Event>> GetById(Guid eventId)
+        {
+            var e = await _context.Events.FindAsync(eventId);
+            if (e == null)
+                return Result.Failure<Event>("Event not found");
+            else
+                return Result.Success(Event.Create(e.Id, e.Title, e.Description, e.StartDate, e.EndDate, e.Location, e.OrganizerId, e.RegisteredParticipantIds, e.ImageUrls, e.CreatedAt, e.UpdatedAt, e.IsActive).Event);
         }
 
         public async Task<Guid> Create(Event @event)
@@ -53,8 +64,7 @@ namespace EventManagement.DataAccess.Repositories
           string description,
           DateTime startDate,
           DateTime endDate,
-          string location,
-          Guid organizerId,
+          Location location,
           bool isActive)
         {
             await _context.Events
@@ -64,8 +74,11 @@ namespace EventManagement.DataAccess.Repositories
                     .SetProperty(e => e.Description, e => description)
                     .SetProperty(e => e.StartDate, e => startDate)
                     .SetProperty(e => e.EndDate, e => endDate)
-                    .SetProperty(e => e.Location, e => location)
-                    .SetProperty(e => e.OrganizerId, e => organizerId)
+                    .SetProperty(e => e.Location.Address, e => location.Address)
+                    .SetProperty(e => e.Location.City, e => location.City)
+                    .SetProperty(e => e.Location.Country, e => location.Country)
+                    .SetProperty(e => e.Location.Latitude, e => location.Latitude)
+                    .SetProperty(e => e.Location.Longitude, e => location.Longitude)
                     .SetProperty(e => e.IsActive, e => isActive)
                     .SetProperty(e => e.UpdatedAt, e => DateTime.UtcNow));
 
@@ -81,17 +94,54 @@ namespace EventManagement.DataAccess.Repositories
             return eventId;
         }
 
-        public async Task<Guid> AddImages(Guid eventId, List<string> imageUrls)
+        public async Task<Result> AddImages(Guid eventId, List<string> imageUrls)
         {
             // Найти событие по его Id
-            var eventEntity = await _context.Events.FindAsync(eventId) 
-                ?? throw new InvalidOperationException($"Event with ID {eventId} not found.");
+            var eventEntity = await _context.Events.FindAsync(eventId);
+            if(eventEntity == null)
+                return Result.Failure($"Event with ID {eventId} not found.");
             eventEntity.ImageUrls.AddRange(imageUrls);
 
             // Сохранить изменения в базе данных
             await _context.SaveChangesAsync();
 
-            return eventId;
+            return Result.Success();
+        }
+
+        public async Task<Result> Join(Guid eventId, User user)
+        {
+            var @event = await _context.Events.FindAsync(eventId);
+            if(@event == null)
+                return Result.Failure($"Event with ID {eventId} not found.");
+
+            if (@event.RegisteredParticipantIds.Contains(new Guid(user.Id)))
+            {
+                return Result.Failure("User is already registered for the event");
+            }
+
+            @event.RegisteredParticipantIds.Add(new Guid(user.Id));
+
+            await _context.SaveChangesAsync();
+
+            return Result.Success("User successfully joined the event");
+        }
+
+        public async Task<Result> Leave(Guid eventId, User user)
+        {
+            var @event = await _context.Events.FindAsync(eventId);
+            if (@event == null)
+                return Result.Failure($"Event with ID {eventId} not found.");
+
+            if (!@event.RegisteredParticipantIds.Contains(new Guid(user.Id)))
+            {
+                return Result.Failure("User is not registered for the event");
+            }
+
+            @event.RegisteredParticipantIds.Remove(new Guid(user.Id));
+
+            await _context.SaveChangesAsync();
+
+            return Result.Success("User successfully left the event");
         }
     }
 }

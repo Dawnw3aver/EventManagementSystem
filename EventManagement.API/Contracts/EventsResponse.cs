@@ -1,4 +1,6 @@
-﻿namespace EventManagement.API.Contracts
+﻿using EventManagement.Core.ValueObjects;
+
+namespace EventManagement.API.Contracts
 {
     public record EventsResponse
         (Guid id, 
@@ -6,8 +8,9 @@
         string description, 
         DateTime startDate,
         DateTime endDate, 
-        string location, 
+        Location location, 
         Guid organizerId,
+        List<string> participants,
         bool isActive,
         DateTime createdAt,
         DateTime updatedAt,

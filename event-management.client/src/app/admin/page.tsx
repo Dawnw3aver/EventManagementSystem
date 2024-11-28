@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { List, Spin, Typography, Layout, Modal, Button, Form, Input, DatePicker, Checkbox, Tabs, Table, Pagination } from 'antd';
+import { List, Spin, Typography, Layout, Modal, Button, Form, Input, DatePicker, Checkbox, Tabs, Table, Pagination, message } from 'antd';
 import axios from 'axios';
-import moment from 'moment'; // Для работы с датами
+import moment from 'moment';
+import dynamic from 'next/dynamic';
 
 const { Title } = Typography;
 const { Content } = Layout;
 const { TabPane } = Tabs;
 
-const availableRoles = ['Admin', 'User', 'Manager']; // Список ролей для чекбоксов
+const MapComponent = dynamic(() => import('../components/MapComponent'), { ssr: false });
+const availableRoles = ['Admin', 'User', 'Manager'];
 
 const UsersAndEventsPage: React.FC = () => {
     const [users, setUsers] = useState<any[]>([]);
@@ -24,15 +26,17 @@ const UsersAndEventsPage: React.FC = () => {
     const [isEditEventModalVisible, setIsEditEventModalVisible] = useState<boolean>(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentEvent, setCurrentEvent] = useState<any>(null);
+    const [location, setLocation] = useState<string | null>(null);
+    const [address, setAddress] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [totalLogs, setTotalLogs] = useState<number>(0);
-    const pageSize = 10; // Количество логов на страницу
+    const pageSize = 10;
 
-    // Загрузка пользователей с сервера
+    // === Загрузка данных ===
     const fetchUsers = async () => {
         setLoadingUsers(true);
         try {
-            const response = await axios.get('https://localhost:7285/api/v1/users', { withCredentials: true });
+            const response = await axios.get('/api/v1/users', { withCredentials: true });
             setUsers(response.data);
         } catch (error) {
             console.error('Ошибка при загрузке пользователей:', error);
@@ -41,11 +45,10 @@ const UsersAndEventsPage: React.FC = () => {
         }
     };
 
-    // Загрузка событий с сервера
     const fetchEvents = async () => {
         setLoadingEvents(true);
         try {
-            const response = await axios.get('https://localhost:7285/api/v1/events', { withCredentials: true });
+            const response = await axios.get('/api/v1/events', { withCredentials: true });
             setEvents(response.data);
         } catch (error) {
             console.error('Ошибка при загрузке событий:', error);
@@ -54,11 +57,10 @@ const UsersAndEventsPage: React.FC = () => {
         }
     };
 
-    // Загрузка логов с сервера
     const fetchLogs = async (page: number) => {
         setLoadingLogs(true);
         try {
-            const response = await axios.get(`https://localhost:7285/api/v1/logs?page=${page}&pageSize=${pageSize}`, { withCredentials: true });
+            const response = await axios.get(`/api/v1/logs?page=${page}&pageSize=${pageSize}`, { withCredentials: true });
             setLogs(response.data);
             setTotalLogs(parseInt(response.headers['x-total-count'], 10) || 0);
         } catch (error) {
@@ -81,34 +83,24 @@ const UsersAndEventsPage: React.FC = () => {
             startDate: moment(event.startDate),
             endDate: moment(event.endDate),
         });
+        setLocation(event.location);
+        setAddress(event.address || "Адрес не указан");
         setIsEditEventModalVisible(true);
     };
 
-    const handleDeleteEvent = async (id: string) => {
-        const confirmDelete = window.confirm('Вы уверены, что хотите удалить это событие?');
-        if (confirmDelete) {
-            try {
-                await axios.delete(`https://localhost:7285/api/v1/events/${id}`, { withCredentials: true });
-                fetchEvents(); // Обновляем список событий после удаления
-            } catch (error) {
-                console.error('Ошибка при удалении события:', error);
-            }
-        }
+    const handleLocationChange = (coords: [number, number]) => {
+        const locationString = `${coords[0]},${coords[1]}`;
+        setLocation(locationString);
+        fetchAddressFromCoords(coords[0], coords[1]);
     };
 
-    const handleAddEvent = async (values: any) => {
+    const fetchAddressFromCoords = async (latitude: number, longitude: number) => {
         try {
-            const formattedValues = {
-                ...values,
-                startDate: values.startDate.toISOString(),
-                endDate: values.endDate.toISOString(),
-            };
-            await axios.post('https://localhost:7285/api/v1/events', formattedValues, { withCredentials: true });
-            fetchEvents(); // Обновляем список событий после добавления
+            const response = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ru`);
+            setAddress(response.data?.display_name || "Адрес не найден");
         } catch (error) {
-            console.error('Ошибка при добавлении события:', error);
-        } finally {
-            setIsAddEventModalVisible(false);
+            console.error("Ошибка при получении адреса:", error);
+            setAddress("Ошибка получения адреса");
         }
     };
 
@@ -116,18 +108,55 @@ const UsersAndEventsPage: React.FC = () => {
         try {
             if (currentEvent) {
                 const formattedValues = {
-                    ...values,
+                    title: values.title,
+                    description: values.description,
                     startDate: values.startDate.toISOString(),
                     endDate: values.endDate.toISOString(),
+                    location: location,
+                    isActive: values.isActive || false,
                 };
-                await axios.put(`https://localhost:7285/api/v1/events/${currentEvent.id}`, formattedValues, { withCredentials: true });
-                fetchEvents(); // Обновляем список событий после изменения
+                await axios.put(`/api/v1/events/${currentEvent.id}`, formattedValues, { withCredentials: true });
+                message.success('Событие успешно обновлено');
+                fetchEvents();
             }
         } catch (error) {
             console.error('Ошибка при обновлении события:', error);
         } finally {
             setIsEditEventModalVisible(false);
             setCurrentEvent(null);
+        }
+    };
+
+    const handleAddEvent = async (values: any) => {
+        try {
+            const formattedValues = {
+                title: values.title,
+                description: values.description,
+                startDate: values.startDate.toISOString(),
+                endDate: values.endDate.toISOString(),
+                location: location,
+                isActive: values.isActive || false,
+            };
+            await axios.post('/api/v1/events', formattedValues, { withCredentials: true });
+            message.success('Событие успешно добавлено');
+            fetchEvents();
+        } catch (error) {
+            console.error('Ошибка при добавлении события:', error);
+        } finally {
+            setIsAddEventModalVisible(false);
+        }
+    };
+
+    const handleDeleteEvent = async (id: string) => {
+        const confirmDelete = window.confirm('Вы уверены, что хотите удалить это событие?');
+        if (confirmDelete) {
+            try {
+                await axios.delete(`/api/v1/events/${id}`, { withCredentials: true });
+                fetchEvents();
+                message.success('Событие успешно удалено');
+            } catch (error) {
+                console.error('Ошибка при удалении события:', error);
+            }
         }
     };
 
@@ -144,8 +173,9 @@ const UsersAndEventsPage: React.FC = () => {
         const confirmDelete = window.confirm('Вы уверены, что хотите удалить этого пользователя?');
         if (confirmDelete) {
             try {
-                await axios.delete(`https://localhost:7285/api/v1/users/${userId}`, { withCredentials: true });
-                fetchUsers(); // Обновляем список после удаления
+                await axios.delete(`/api/v1/users/${userId}`, { withCredentials: true });
+                fetchUsers();
+                message.success('Пользователь успешно удален');
             } catch (error) {
                 console.error('Ошибка при удалении пользователя:', error);
             }
@@ -158,8 +188,9 @@ const UsersAndEventsPage: React.FC = () => {
                 ...values,
                 birthDate: values.birthDate.toISOString(),
             };
-            await axios.post('https://localhost:7285/api/v1/users', formattedValues, { withCredentials: true });
-            fetchUsers(); // Обновляем список пользователей после добавления
+            await axios.post('/api/v1/users', formattedValues, { withCredentials: true });
+            fetchUsers();
+            message.success('Пользователь успешно добавлен');
         } catch (error) {
             console.error('Ошибка при добавлении пользователя:', error);
         } finally {
@@ -174,8 +205,9 @@ const UsersAndEventsPage: React.FC = () => {
                     ...values,
                     birthDate: values.birthDate.toISOString(),
                 };
-                await axios.put(`https://localhost:7285/api/v1/users/${currentUser.userId}`, formattedValues, { withCredentials: true });
-                fetchUsers(); // Обновляем список пользователей после изменения
+                await axios.put(`/api/v1/users/${currentUser.userId}`, formattedValues, { withCredentials: true });
+                fetchUsers();
+                message.success('Пользователь успешно обновлен');
             }
         } catch (error) {
             console.error('Ошибка при обновлении пользователя:', error);
@@ -222,7 +254,6 @@ const UsersAndEventsPage: React.FC = () => {
             <Content style={{ padding: '20px' }}>
                 <div style={{ background: '#ffffff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                     <Tabs defaultActiveKey="1">
-                        {/* Вкладка для событий */}
                         <TabPane tab="События" key="1">
                             <Title level={2} style={{ textAlign: 'center' }}>Список событий</Title>
                             <Button type="primary" style={{ marginBottom: '20px' }} onClick={() => setIsAddEventModalVisible(true)}>
@@ -236,18 +267,16 @@ const UsersAndEventsPage: React.FC = () => {
                                         <List.Item.Meta
                                             title={<span style={{ fontWeight: 'bold' }}>{event.title}</span>}
                                             description={`Дата начала: ${new Date(event.startDate).toLocaleDateString()} - Дата окончания: ${new Date(event.endDate).toLocaleDateString()} | Место: ${event.location}`}
-                                            style={{ marginBottom: '10px' }}
                                         />
                                         <div>
                                             <Button type="primary" onClick={() => handleEditEvent(event)} style={{ marginRight: '10px' }}>Изменить</Button>
-                                            <Button type="primary" onClick={() => handleDeleteEvent(event.id)}>Удалить</Button>
+                                            <Button type="primary" danger onClick={() => handleDeleteEvent(event.id)}>Удалить</Button>
                                         </div>
                                     </List.Item>
                                 )}
                             />
                         </TabPane>
 
-                        {/* Вкладка для пользователей */}
                         <TabPane tab="Пользователи" key="2">
                             <Title level={2} style={{ textAlign: 'center' }}>Список пользователей</Title>
                             <Button type="primary" style={{ marginBottom: '20px' }} onClick={() => setIsAddUserModalVisible(true)}>
@@ -260,19 +289,17 @@ const UsersAndEventsPage: React.FC = () => {
                                     <List.Item style={{ borderBottom: '1px solid #f0f0f0' }}>
                                         <List.Item.Meta
                                             title={<span style={{ fontWeight: 'bold' }}>{user.userName}</span>}
-                                            description={`Email: ${user.email} | Имя: ${user.firstName} ${user.lastName}`}
-                                            style={{ marginBottom: '10px' }}
+                                            description={`Email: ${user.email}`}
                                         />
                                         <div>
                                             <Button type="primary" onClick={() => handleEditUser(user)} style={{ marginRight: '10px' }}>Изменить</Button>
-                                            <Button type="primary" onClick={() => handleDeleteUser(user.userId)}>Удалить</Button>
+                                            <Button type="primary" danger onClick={() => handleDeleteUser(user.userId)}>Удалить</Button>
                                         </div>
                                     </List.Item>
                                 )}
                             />
                         </TabPane>
 
-                        {/* Вкладка для логов */}
                         <TabPane tab="Логи" key="3">
                             <Title level={2} style={{ textAlign: 'center' }}>Логи системы</Title>
                             <Table
@@ -296,7 +323,7 @@ const UsersAndEventsPage: React.FC = () => {
             {/* Модальное окно для добавления события */}
             <Modal
                 title="Добавить событие"
-                visible={isAddEventModalVisible}
+                open={isAddEventModalVisible}
                 onCancel={() => setIsAddEventModalVisible(false)}
                 footer={null}
             >
@@ -313,8 +340,9 @@ const UsersAndEventsPage: React.FC = () => {
                     <Form.Item name="endDate" label="Дата окончания" rules={[{ required: true, message: 'Введите дату окончания!' }]}>
                         <DatePicker showTime />
                     </Form.Item>
-                    <Form.Item name="location" label="Место" rules={[{ required: true, message: 'Введите место проведения!' }]}>
-                        <Input />
+                    <Form.Item label="Место проведения">
+                        <MapComponent center={[55.7558, 37.6176]} zoom={13} onLocationChange={handleLocationChange} />
+                        {address && <p>Адрес: {address}</p>}
                     </Form.Item>
                     <Form.Item>
                         <Button type="primary" htmlType="submit" style={{ width: '100%' }}>
@@ -327,7 +355,7 @@ const UsersAndEventsPage: React.FC = () => {
             {/* Модальное окно для изменения события */}
             <Modal
                 title="Изменить событие"
-                visible={isEditEventModalVisible}
+                open={isEditEventModalVisible}
                 onCancel={() => setIsEditEventModalVisible(false)}
                 footer={null}
             >
@@ -344,8 +372,9 @@ const UsersAndEventsPage: React.FC = () => {
                     <Form.Item name="endDate" label="Дата окончания" rules={[{ required: true, message: 'Введите дату окончания!' }]}>
                         <DatePicker showTime />
                     </Form.Item>
-                    <Form.Item name="location" label="Место" rules={[{ required: true, message: 'Введите место проведения!' }]}>
-                        <Input />
+                    <Form.Item label="Место проведения">
+                        <MapComponent center={[55.7558, 37.6176]} zoom={13} onLocationChange={handleLocationChange} />
+                        {address && <p>Адрес: {address}</p>}
                     </Form.Item>
                     <Form.Item>
                         <Button type="primary" htmlType="submit" style={{ width: '100%' }}>
@@ -358,7 +387,7 @@ const UsersAndEventsPage: React.FC = () => {
             {/* Модальное окно для добавления пользователя */}
             <Modal
                 title="Добавить пользователя"
-                visible={isAddUserModalVisible}
+                open={isAddUserModalVisible}
                 onCancel={() => setIsAddUserModalVisible(false)}
                 footer={null}
             >
@@ -407,7 +436,7 @@ const UsersAndEventsPage: React.FC = () => {
             {/* Модальное окно для изменения пользователя */}
             <Modal
                 title="Изменить пользователя"
-                visible={isEditUserModalVisible}
+                open={isEditUserModalVisible}
                 onCancel={() => setIsEditUserModalVisible(false)}
                 footer={null}
             >

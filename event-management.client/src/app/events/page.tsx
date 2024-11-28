@@ -1,258 +1,405 @@
+// pages/EventsPage.tsx
+
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { Layout, Menu, Typography, Card, Button, Spin, Input, Col, Row, Checkbox, Form, DatePicker, Switch, Space, Upload, message } from 'antd';
-import { CalendarOutlined, EnvironmentOutlined, PlusOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import moment from 'moment';
+import React, { useEffect, useState } from "react";
+import {
+  Layout,
+  Typography,
+  Card,
+  Button,
+  Spin,
+  Input,
+  Col,
+  Row,
+  Form,
+  DatePicker,
+  Switch,
+  UploadFile,
+  Upload,
+  message,
+  Modal,
+  List,
+  Image,
+  Carousel,
+  Select,
+  FloatButton,
+} from "antd";
+import {
+  CalendarOutlined,
+  EnvironmentOutlined,
+  FilterOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
+import axios, { AxiosError } from "axios";
+import dynamic from "next/dynamic";
+import Paragraph from "antd/es/typography/Paragraph";
+import EventFilters from "../components/EventFilters";
+import EventCreationForm from "../components/EventCreationComponent";
+import { Content } from "antd/es/layout/layout";
 
-const { Header, Footer, Sider } = Layout;
+const { Footer, Sider } = Layout;
 const { Title } = Typography;
 const { Search } = Input;
 
 const EventsPage: React.FC = () => {
-    const router = useRouter();
-    const [events, setEvents] = useState<any[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [collapsed, setCollapsed] = useState<boolean>(false);
-    const [imageFiles, setImageFiles] = useState<File[]>([]);
-    const [newEventId, setNewEventId] = useState<string | null>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [originalEvents, setOriginalEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [collapsed, setCollapsed] = useState<boolean>(false);
+  const [newEventId, setNewEventId] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null); // Выбранное событие
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false); // Видимость модального окна
+  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+  const [isFilterModalVisible, setFilterModalVisible] = useState(false);
+  const [isSiderCollapsed, setSiderCollapsed] = useState(false);
 
-    useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                const response = await axios.get('https://localhost:7285/api/v1/events', { withCredentials: true });
-                setEvents(response.data);
-            } catch (error) {
-                console.error('Ошибка при загрузке событий:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+  const showCreateModal = () => setCreateModalVisible(true);
+  const hideCreateModal = () => setCreateModalVisible(false);
 
-        fetchEvents();
-    }, []);
+  const showFilterModal = () => setFilterModalVisible(true);
+  const hideFilterModal = () => setFilterModalVisible(false);
 
-    const onSearch = (value: string) => {
-        console.log('Поиск:', value);
-    };
-
-    const onFilterChange = (checkedValues: any) => {
-        console.log('Фильтры изменены:', checkedValues);
-    };
-
-    const handleCollapse = (collapsed: boolean) => {
-        setCollapsed(collapsed);
-    };
-
-    const handleImageUpload = (file: File) => {
-        const isImage = file.type.startsWith('image/');
-        if (!isImage) {
-            message.error('Вы можете загружать только изображения!');
-            return false;
-        }
-        setImageFiles([...imageFiles, file]);
-        return true;
-    };
-
-    const handleImageUploadRemove = (file: File) => {
-        setImageFiles(imageFiles.filter(f => f !== file));
-    };
-
-    const handleCreateEvent = async (values: any) => {
-        const eventData = {
-            title: values.title,
-            description: values.description,
-            startDate: values.startDate?.toISOString(),
-            endDate: values.endDate?.toISOString(),
-            location: values.location,
-            isActive: values.isActive,
-        };
-
-        try {
-            const response = await axios.post('https://localhost:7285/api/v1/events', eventData, {
-                withCredentials: true
-            });
-            setNewEventId(response.data); // Сохраняем ID нового события
-            handleUploadImages(response.data);
-            message.success('Событие успешно создано.');
-        } catch (error) {
-            console.error('Ошибка при создании события:', error);
-        }
-    };
-
-    const handleUploadImages = async (id: string) => {
-
-        const formData = new FormData();
-        imageFiles.forEach(file => {
-            formData.append('files', file);
-        });
-
-        try {
-            await axios.post(`https://localhost:7285/upload-images?id=${id}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-                withCredentials: true
-            });
-            message.success('Изображения успешно загружены.');
-            setNewEventId(null); // Сбрасываем ID события
-            setImageFiles([]); // Очищаем загруженные изображения
-        } catch (error) {
-            console.error('Ошибка при загрузке изображений:', error);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div style={{ textAlign: 'center', marginTop: '50px' }}>
-                <Spin size="large" />
-            </div>
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await axios.get(
+          "/api/v1/events",
+          { withCredentials: true }
         );
+        setEvents(response.data);
+        setOriginalEvents(response.data);
+      } catch (error) {
+        console.error("Ошибка при загрузке событий:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  const onSearch = (value: string) => {
+    if (value.trim() === "") {
+      setEvents(originalEvents);
+    } else {
+      // Фильтрация событий по заголовку
+      const filteredEvents = originalEvents.filter(
+        (event) =>
+          event.title.toLowerCase().includes(value.toLowerCase()) ||
+          event.description.toLowerCase().includes(value.toLowerCase())
+      );
+      setEvents(filteredEvents);
     }
+  };
 
+  const handleCollapse = (collapsed: boolean) => {
+    setCollapsed(collapsed);
+  };
+
+  const handleFilterApply = (filteredEvents: any) => {
+    setEvents(filteredEvents);
+  };
+
+  const showEventDetails = (event: any) => {
+    setSelectedEvent({
+      ...event,
+      participants: event?.participants ?? [], // Инициализируем пустым массивом, если participants отсутствует
+    });
+    setIsModalVisible(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false); // Закрытие модального окна
+    setSelectedEvent(null); // Очищаем выбранное событие
+  };
+
+  const handleJoinEvent = async (eventId: string) => {
+    try {
+      const response = await axios.post(
+        `/api/v1/events/join?eventId=${eventId}`,
+        {},
+        { withCredentials: true }
+      );
+
+      if (response.status === 200) {
+        message.success("Вы успешно присоединились к событию");
+        setSelectedEvent((prev: any) => ({
+          ...prev,
+          participants: prev?.participants
+            ? [...prev.participants, "Вы"]
+            : ["Вы"], // Убедитесь, что participants существует
+        }));
+      }
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      if (axiosError.response?.status === 401) {
+        message.error(
+          "Необходимо войти в систему, чтобы присоединиться к событию."
+        );
+      } else if (axiosError.response?.status === 400) {
+        message.warning("Вы уже присоединились к этому событию.");
+      } else {
+        message.error("Ошибка при попытке присоединиться к событию.");
+      }
+    }
+  };
+
+  const handleLeaveEvent = async (eventId: string) => {
+    try {
+      const response = await axios.post(
+        `/api/v1/events/leave?eventId=${eventId}`,
+        {},
+        { withCredentials: true }
+      );
+
+      if (response.status === 200) {
+        message.success("Вы успешно отписались от события");
+        // setSelectedEvent((prev: any) => ({
+        //     ...prev,
+        //     participants: prev?.participants ? [...prev.participants, 'Вы'] : ['Вы'] // Убедитесь, что participants существует
+        // }));
+      }
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      message.error("Ошибка при отписке от события" + axiosError.message);
+    }
+  };
+
+  if (loading) {
     return (
-        <Layout style={{ minHeight: '100vh' }}>
-            <Header>
-                <Menu theme="dark" mode="horizontal" style={{ justifyContent: 'flex-end' }}>
-                    <Menu.Item key="1" onClick={() => router.push('/')}>Главная</Menu.Item>
-                    <Menu.Item key="2" onClick={() => router.push('/admin')}>Администрирование</Menu.Item>
-                    <Menu.Item key="3">
-                        <Button type="link" style={{ color: 'white' }}>Войти</Button>
-                    </Menu.Item>
-                    <Menu.Item key="4">
-                        <Button type="link" style={{ color: 'white' }}>Регистрация</Button>
-                    </Menu.Item>
-                </Menu>
-            </Header>
-
-            <Layout>
-                <Sider
-                    collapsible
-                    collapsed={collapsed}
-                    onCollapse={handleCollapse}
-                    width={300}
-                    style={{ backgroundColor: '#f9f9f9' }}
-                >
-                    {!collapsed && (
-                        <>
-                            <div style={{ marginLeft: '20px', paddingRight: '20px' }}>
-                                <Title level={4}>Фильтры</Title>
-                                <Form layout="vertical" onValuesChange={onFilterChange}>
-                                    <Form.Item label="Место проведения">
-                                        <Checkbox.Group options={['Москва', 'Санкт-Петербург', 'Другие']} />
-                                    </Form.Item>
-
-                                    <Form.Item label="Дата">
-                                        <Checkbox.Group options={['Сегодня', 'Завтра', 'На этой неделе']} />
-                                    </Form.Item>
-
-                                    <Form.Item label="Категории">
-                                        <Checkbox.Group options={['Концерты', 'Спорт', 'Театры']} />
-                                    </Form.Item>
-                                    <Button type="primary" style={{ width: '100%' }}>
-                                        Применить фильтры
-                                    </Button>
-                                </Form>
-
-                                <Title level={4} style={{ marginTop: '20px' }}>Создание события</Title>
-                                <Form layout="vertical" onFinish={handleCreateEvent}>
-                                    <Form.Item label="Название события" name="title">
-                                        <Input placeholder="Введите название" />
-                                    </Form.Item>
-
-                                    <Form.Item label="Описание события" name="description">
-                                        <Input.TextArea placeholder="Введите описание" />
-                                    </Form.Item>
-
-                                    <Form.Item label="Место проведения" name="location">
-                                        <Input placeholder="Введите место" />
-                                    </Form.Item>
-
-                                    <Form.Item label="Дата начала" name="startDate">
-                                        <DatePicker style={{ width: '100%' }} />
-                                    </Form.Item>
-
-                                    <Form.Item label="Дата окончания" name="endDate">
-                                        <DatePicker style={{ width: '100%' }} />
-                                    </Form.Item>
-
-                                    <Form.Item label="Платное событие" name="isActive" valuePropName="checked">
-                                        <Switch />
-                                    </Form.Item>
-
-                                    <Form.Item label="Изображения">
-                                        <Upload
-                                            beforeUpload={handleImageUpload}
-                                            onRemove={handleImageUploadRemove}
-                                            multiple
-                                            showUploadList={true}
-                                        >
-                                            <Button icon={<PlusOutlined />}>Загрузить изображения</Button>
-                                        </Upload>
-                                    </Form.Item>
-
-                                    <Button type="primary" icon={<PlusOutlined />} style={{ width: '100%' }} htmlType="submit">
-                                        Создать событие
-                                    </Button>
-                                </Form>
-                            </div>
-                        </>
-                    )}
-                </Sider>
-
-                <Layout style={{ padding: '20px', backgroundColor: '#fff' }}>
-                    <Row style={{ marginBottom: '20px' }}>
-                        <Col span={24}>
-                            <Search
-                                placeholder="Введите название события"
-                                onSearch={onSearch}
-                                enterButton
-                                size="large"
-                            />
-                        </Col>
-                    </Row>
-
-                    <Row gutter={[16, 16]}>
-                        {events.map(event => (
-                            <Col span={24} key={event.id}>
-                                <Card
-                                    hoverable
-                                    cover={
-                                        <img
-                                            alt="event"
-                                            src={'https://localhost:7285' + event.imageUrls[0]} // Используем первое изображение из массива imageUrls или плейсхолдер
-                                            style={{ height: '200px', objectFit: 'cover' }}
-                                        />
-                                    }
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <div>
-                                            <Card.Meta
-                                                title={<span style={{ fontWeight: 'bold' }}>{event.title}</span>}
-                                                description={
-                                                    <>
-                                                        <p><CalendarOutlined /> {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}</p>
-                                                        <p><EnvironmentOutlined /> {event.location}</p>
-                                                    </>
-                                                }
-                                            />
-                                        </div>
-                                        <Button type="primary" style={{ marginTop: '15px', whiteSpace: 'nowrap' }}>
-                                            Подробнее
-                                        </Button>
-                                    </div>
-                                </Card>
-                            </Col>
-                        ))}
-                    </Row>
-                </Layout>
-            </Layout>
-
-            <Footer style={{ textAlign: 'center' }}>Event Management ©2024 Created by You</Footer>
-        </Layout>
+      <div style={{ textAlign: "center", marginTop: "50px" }}>
+        <Spin size="large" />
+      </div>
     );
+  }
+
+  return (
+    <Layout style={{ minHeight: "100vh" }}>
+      <Layout>
+      <Sider
+        width={300}
+        breakpoint="lg"
+        collapsedWidth="0"
+        style={{ backgroundColor: "#f9f9f9" }}
+        trigger={null}
+        onCollapse={(collapsed) => setSiderCollapsed(collapsed)}
+      >
+        <div style={{ marginLeft: "20px", paddingRight: "20px" }}>
+          <Title level={4} style={{ marginTop: "20px" }}>
+            Фильтры
+          </Title>
+          <EventFilters
+            events={originalEvents}
+            onFilterApply={handleFilterApply}
+            originalEvents={originalEvents}
+          />
+        </div>
+      </Sider>
+      <Layout style={{ padding: "20px", backgroundColor: "#fff" }}>
+        <Content>
+          <Row style={{ marginBottom: "20px" }}>
+            <Col span={24}>
+              <Search
+                placeholder="Введите название события"
+                onSearch={onSearch}
+                onChange={(e) => onSearch(e.target.value)}
+                enterButton
+                size="large"
+              />
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            {events.map((event) => (
+              <Col xs={24} sm={12} md={8} lg={6} key={event.id}>
+                <Card
+                  hoverable
+                  cover={
+                    <img
+                      alt="event"
+                      src={event.imageUrls[0]}
+                      style={{ height: "200px", objectFit: "cover" }}
+                    />
+                  }
+                >
+                  <Card.Meta
+                    title={<span style={{ fontWeight: "bold" }}>{event.title}</span>}
+                    description={
+                      <>
+                        <p>
+                          <CalendarOutlined /> {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}
+                        </p>
+                        <p>
+                          <EnvironmentOutlined /> {event.location.city}
+                        </p>
+                      </>
+                    }
+                  />
+                  <div style={{ display: "flex", justifyContent: "center", marginTop: "15px" }}>
+                    <Button type="primary" style={{ width: "100%" }} onClick={() => showEventDetails(event)}>
+                      Подробнее
+                    </Button>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </Content>
+      </Layout>
+
+      <FloatButton
+        icon={<PlusOutlined />}
+        type="primary"
+        onClick={showCreateModal}
+        style={{ right: 24, bottom: 24 }}
+      />
+
+      {isSiderCollapsed && (
+        <FloatButton
+          icon={<FilterOutlined />}
+          type="default"
+          onClick={showFilterModal}
+          style={{ left: 24, bottom: 24 }}
+        />
+      )}
+
+      <Modal
+        title="Создание события"
+        open={isCreateModalVisible}
+        onCancel={hideCreateModal}
+        footer={null}
+      >
+        <EventCreationForm onEventCreated={(newEventId) => {
+          setNewEventId(newEventId);
+          hideCreateModal();
+        }} />
+      </Modal>
+
+      {/* Модальное окно для фильтров (на мобильных устройствах) */}
+      <Modal
+        title="Фильтры событий"
+        visible={isFilterModalVisible}
+        onCancel={hideFilterModal}
+        footer={null}
+      >
+        <EventFilters
+          events={originalEvents}
+          onFilterApply={(filters) => {
+            handleFilterApply(filters);
+            hideFilterModal();
+          }}
+          originalEvents={originalEvents}
+        />
+      </Modal>
+    </Layout>
+      <Modal
+        title={selectedEvent?.title}
+        open={isModalVisible}
+        onCancel={handleCancel}
+        footer={[
+          <>
+            <Button
+              key="join"
+              type="primary"
+              onClick={() => handleJoinEvent(selectedEvent?.id)}
+            >
+              Подписаться
+            </Button>
+            <Button
+              key="leave"
+              type="primary"
+              onClick={() => handleLeaveEvent(selectedEvent?.id)}
+            >
+              Отписаться
+            </Button>
+          </>,
+        ]}
+        width={800}
+      >
+        {selectedEvent && (
+          <div>
+            {selectedEvent.imageUrls && selectedEvent.imageUrls.length > 0 ? (
+              <div>
+                <Carousel dots style={{ textAlign: "center" }}>
+                  {selectedEvent.imageUrls.map((url: string, index: number) => (
+                    <div key={index}>
+                      <Image
+                        src={`${url}`}
+                        alt={`Изображение ${index + 1}`}
+                        style={{
+                          borderRadius: "8px",
+                          objectFit: "cover",
+                          width: "100%",
+                          height: "400px",
+                        }}
+                        preview={false}
+                      />
+                    </div>
+                  ))}
+                </Carousel>
+              </div>
+            ) : (
+              <Paragraph>Изображения отсутствуют</Paragraph>
+            )}
+            <Card
+              style={{
+                backgroundColor: "#f9f9f9",
+                borderRadius: "8px",
+                marginBottom: "20px",
+              }}
+            >
+              <p>
+                <CalendarOutlined />{" "}
+                {new Date(selectedEvent.startDate).toLocaleDateString()} -{" "}
+                {new Date(selectedEvent.endDate).toLocaleDateString()}
+              </p>
+              <p>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    selectedEvent.location.address
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <EnvironmentOutlined /> {selectedEvent.location.city}
+                </a>
+              </p>
+            </Card>
+            <Card
+              style={{
+                backgroundColor: "#f9f9f9",
+                borderRadius: "8px",
+                marginBottom: "20px",
+              }}
+            >
+              <Paragraph>{selectedEvent.description}</Paragraph>
+            </Card>
+
+            <Card
+              style={{
+                backgroundColor: "#f9f9f9", 
+                borderRadius: "8px", 
+                marginBottom: "20px",
+              }}
+            >
+              <Title level={5}>Адрес</Title>
+              <Paragraph>{selectedEvent.location.address}</Paragraph>
+            </Card>
+
+            <Title level={4}>Участники</Title>
+            <List
+              bordered
+              dataSource={selectedEvent.participants}
+              renderItem={(participant: any) => (
+                <List.Item>{participant}</List.Item>
+              )}
+            />
+          </div>
+        )}
+      </Modal>
+    </Layout>
+  );
 };
 
 export default EventsPage;
