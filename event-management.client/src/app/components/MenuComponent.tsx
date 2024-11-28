@@ -58,7 +58,7 @@ const MenuComponent: React.FC = () => {
         sessionStorage.removeItem('userRoles');
         console.log('Выход выполнен успешно');
         router.push('/');
-        console.log('router.push()');
+
     } catch (error) {
         console.error('Logout failed:', error);
         // Обработка ошибки
@@ -81,40 +81,61 @@ const MenuComponent: React.FC = () => {
 
   return (
     <>
-      <Menu theme="dark" mode="horizontal" style={{ display: 'flex', justifyContent: 'space-between', lineHeight: 0 }}>
-        <Menu.Item key="logo" onClick={() => router.push('/')} style={{ marginRight: 'auto', padding: '10px' }}>
-        <img src="images/logo.svg" alt="Logo" style={{ height: '40px' }} />
-        <p style={{
+      <Menu
+      theme="dark"
+      mode="horizontal"
+      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', lineHeight: '40px' }}
+    >
+      <Menu.Item
+        key="logo"
+        onClick={() => router.push('/')}
+        style={{ marginRight: 'auto', padding: '10px' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img src="images/logo.svg" alt="Logo" style={{ height: '40px' }} />
+          <p style={{
             fontSize: '24px',
             fontFamily: 'Nunito, sans-serif',
             fontWeight: '700',
             margin: 0,
-            color: 'white'
+            color: 'white',
           }}>
             Eventify
           </p>
+        </div>
+      </Menu.Item>
+      
+      {userRoles.includes('Admin') && (
+        <Menu.Item key="1" onClick={() => router.push('/admin')} style={{ color: 'white' }}>
+          Администрирование
         </Menu.Item>
-
-        {userRoles.includes('Admin') && (
-          <Menu.Item key="1" onClick={() => router.push('/admin')} style={{ color: 'white', paddingTop: '30px'}}>Администрирование</Menu.Item>
-        )}
-        {userName ? (
-          <>
-            <Menu.Item key="2" onClick={() => router.push('/userpage')} style={{ color: 'white', paddingTop: '30px'}}>{userName}</Menu.Item>
-            <Menu.Item key="3">
-              <Button type="link" onClick={handleLogout} style={{ color: 'white', paddingTop: '30px'}}>Выход</Button>
-            </Menu.Item>
-          </>
-        ) : (
-          <>
-            <Menu.Item key="4">
-              <Button type="link" onClick={() => setIsLoginModalVisible(true)} style={{ color: 'white', paddingTop: '30px'}}>Вход</Button>
-            </Menu.Item>
-            <Menu.Item key="5">
-              <Button type="link" onClick={() => setIsRegisterModalVisible(true)} style={{ color: 'white', paddingTop: '30px' }}>Регистрация</Button>
-            </Menu.Item>
-          </>
-        )}
+      )}
+      
+      {userName ? (
+        <>
+          <Menu.Item key="2" onClick={() => router.push('/userpage')} style={{ color: 'white' }}>
+            {userName}
+          </Menu.Item>
+          <Menu.Item key="3">
+            <Button type="link" onClick={handleLogout} style={{ color: 'white' }}>
+              Выход
+            </Button>
+          </Menu.Item>
+        </>
+      ) : (
+        <>
+          <Menu.Item key="4">
+            <Button type="link" onClick={() => setIsLoginModalVisible(true)} style={{ color: 'white' }}>
+              Вход
+            </Button>
+          </Menu.Item>
+          <Menu.Item key="5">
+            <Button type="link" onClick={() => setIsRegisterModalVisible(true)} style={{ color: 'white' }}>
+              Регистрация
+            </Button>
+          </Menu.Item>
+        </>
+      )}
     </Menu>
 
       {/* Модальное окно для входа */}
